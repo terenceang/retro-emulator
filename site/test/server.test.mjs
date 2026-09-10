@@ -7,12 +7,12 @@ import { createEmuServer } from "../server.mjs";
 
 async function makeFixture() {
   const root = await mkdtemp(path.join(tmpdir(), "emu-site-"));
-  await mkdir(path.join(root, "appleii", "assets"), { recursive: true });
+  await mkdir(path.join(root, "apple2e", "assets"), { recursive: true });
   await mkdir(path.join(root, "zx-spectrum"), { recursive: true });
   await writeFile(path.join(root, "index.html"), "<h1>landing</h1>");
   await writeFile(path.join(root, "favicon.svg"), "<svg/>");
-  await writeFile(path.join(root, "appleii", "index.html"), "<h1>appleii</h1>");
-  await writeFile(path.join(root, "appleii", "assets", "index-abc123.js"), "console.log(1)");
+  await writeFile(path.join(root, "apple2e", "index.html"), "<h1>apple2e</h1>");
+  await writeFile(path.join(root, "apple2e", "assets", "index-abc123.js"), "console.log(1)");
   await writeFile(path.join(root, "zx-spectrum", "index.html"), "<h1>zx</h1>");
   return root;
 }
@@ -39,7 +39,7 @@ async function withServer(fn, { throttleMs = 60_000, seedCount } = {}) {
 
 test("healthz endpoints answer {ok:true} on all three paths", async () => {
   await withServer(async (base) => {
-    for (const p of ["/healthz", "/appleii/healthz", "/zx-spectrum/healthz"]) {
+    for (const p of ["/healthz", "/apple2e/healthz", "/zx-spectrum/healthz"]) {
       const res = await fetch(`${base}${p}`);
       assert.equal(res.status, 200);
       assert.deepEqual(await res.json(), { ok: true });
@@ -50,13 +50,13 @@ test("healthz endpoints answer {ok:true} on all three paths", async () => {
 
 test("security headers are on every response; COOP/COEP only on isolated subpaths", async () => {
   await withServer(async (base) => {
-    for (const p of ["/", "/appleii/", "/zx-spectrum/", "/missing", "/api/count"]) {
+    for (const p of ["/", "/apple2e/", "/zx-spectrum/", "/missing", "/api/count"]) {
       const res = await fetch(`${base}${p}`);
       assert.equal(res.headers.get("x-content-type-options"), "nosniff", p);
       assert.equal(res.headers.get("x-frame-options"), "SAMEORIGIN", p);
       assert.match(res.headers.get("content-security-policy"), /default-src 'self'/, p);
     }
-    for (const p of ["/appleii/", "/zx-spectrum/"]) {
+    for (const p of ["/apple2e/", "/zx-spectrum/"]) {
       const res = await fetch(`${base}${p}`);
       assert.equal(res.headers.get("cross-origin-opener-policy"), "same-origin", p);
       assert.equal(res.headers.get("cross-origin-embedder-policy"), "require-corp", p);
@@ -70,7 +70,7 @@ test("security headers are on every response; COOP/COEP only on isolated subpath
 
 test("CSP allows the MCP bridge localhost ports", async () => {
   await withServer(async (base) => {
-    const res = await fetch(`${base}/appleii/`);
+    const res = await fetch(`${base}/apple2e/`);
     assert.match(
       res.headers.get("content-security-policy"),
       /connect-src 'self' ws:\/\/localhost:8791 ws:\/\/localhost:8790/,
@@ -80,13 +80,13 @@ test("CSP allows the MCP bridge localhost ports", async () => {
 
 test("serves index.html for directories, correct cache per file class", async () => {
   await withServer(async (base) => {
-    const page = await fetch(`${base}/appleii/`);
+    const page = await fetch(`${base}/apple2e/`);
     assert.equal(page.status, 200);
     assert.match(page.headers.get("content-type"), /text\/html/);
     assert.equal(page.headers.get("cache-control"), "no-cache");
-    assert.equal(await page.text(), "<h1>appleii</h1>");
+    assert.equal(await page.text(), "<h1>apple2e</h1>");
 
-    const asset = await fetch(`${base}/appleii/assets/index-abc123.js`, {
+    const asset = await fetch(`${base}/apple2e/assets/index-abc123.js`, {
       headers: { "accept-encoding": "gzip" },
     });
     assert.equal(asset.status, 200);
@@ -97,15 +97,15 @@ test("serves index.html for directories, correct cache per file class", async ()
 
 test("directory without trailing slash redirects", async () => {
   await withServer(async (base) => {
-    const res = await fetch(`${base}/appleii`, { redirect: "manual" });
+    const res = await fetch(`${base}/apple2e`, { redirect: "manual" });
     assert.equal(res.status, 301);
-    assert.equal(res.headers.get("location"), "/appleii/");
+    assert.equal(res.headers.get("location"), "/apple2e/");
   });
 });
 
 test("path traversal is rejected", async () => {
   await withServer(async (base) => {
-    for (const p of ["/../server.mjs", "/%2e%2e/server.mjs", "/appleii/../../etc/passwd"]) {
+    for (const p of ["/../server.mjs", "/%2e%2e/server.mjs", "/apple2e/../../etc/passwd"]) {
       const res = await fetch(`${base}${p}`);
       assert.equal(res.status, 404, p);
       assert.ok(!(await res.text()).includes("SERVER"), p);
@@ -126,10 +126,10 @@ test("unknown paths 404, favicon.ico falls back to favicon.svg", async () => {
 
 test("etag revalidation returns 304", async () => {
   await withServer(async (base) => {
-    const first = await fetch(`${base}/appleii/`);
+    const first = await fetch(`${base}/apple2e/`);
     const etag = first.headers.get("etag");
     assert.ok(etag);
-    const second = await fetch(`${base}/appleii/`, { headers: { "if-none-match": etag } });
+    const second = await fetch(`${base}/apple2e/`, { headers: { "if-none-match": etag } });
     assert.equal(second.status, 304);
   });
 });

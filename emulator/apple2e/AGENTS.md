@@ -37,12 +37,12 @@ Dependency chain: `worker` → `core`; `app` → `core` + `worker`; `mcp-server`
 Production is served by the standalone **emu-site** server (`~/emu-site`, its own repo): one
 node:http process serves the landing page plus this app's and the ZX Spectrum's static dists,
 the visitor counter (`/api/count`), and security/COOP/COEP headers for everything. This repo
-ships only a static build — deploy = copy `packages/app/dist/*` to the site root's `appleii/`
+ships only a static build — deploy = copy `packages/app/dist/*` to the site root's `apple2e/`
 directory.
 
 Healthz contract: the app polls **origin-relative `healthz`** every 5s (4s timeout); **any
 2xx response counts as alive** (the body is never inspected). Keep that contract in sync with
-emu-site's `/appleii/healthz` endpoint.
+emu-site's `/apple2e/healthz` endpoint.
 
 ## ROM files
 

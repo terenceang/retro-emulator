@@ -114,7 +114,7 @@ packages/
 
 Production hosting is provided by the separate **emu-site** server, which serves this app's
 static build (plus the landing page, the ZX Spectrum dist, and the visitor counter) — this
-repo deploys by copying `packages/app/dist/*` to the site's `appleii/` directory.
+repo deploys by copying `packages/app/dist/*` to the site's `apple2e/` directory.
 
 ## Scripts
 

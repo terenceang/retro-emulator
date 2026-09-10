@@ -18,7 +18,7 @@ function injectVersion(): Plugin {
 
 export default defineConfig({
   // Relative asset URLs so the built app works both at the server root and
-  // under a subpath (emu.terenceang.com/appleii/).
+  // under a subpath (emu.terenceang.com/apple2e/).
   base: "./",
   plugins: [injectVersion()],
   server: {

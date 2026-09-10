@@ -9,7 +9,7 @@ Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
 | Serves | What |
 |---|---|
 | `/` | Landing page (`/home/terence/emu` static tree, unchanged deploy flow) |
-| `/appleii/` | Apple //e emulator dist + COOP/COEP + real `/appleii/healthz` |
+| `/apple2e/` | Apple //e emulator dist + COOP/COEP + real `/apple2e/healthz` |
 | `/zx-spectrum/` | ZX Spectrum dist + COOP/COEP + `/zx-spectrum/healthz` |
 | `/api/count` | Visitor counter (absorbed from emu-counter; IP-throttled, atomic persist) |
 | `/healthz` | Root liveness for tunnel/uptime checks |
@@ -36,13 +36,13 @@ EMU_SITE_ROOT=/home/terence/emu PORT=8080 node server.mjs
 
 ## Cutover
 
-1. `cp /home/terence/backup-repos/emu-counter/count.json /home/terence/emu-monorepo/site/` (preserve the count)
-2. `sudo bash /home/terence/emu-monorepo/site/cutover.sh`
+1. `cp /home/terence/backup-repos/emu-counter/count.json /home/terence/retro-emulator/site/` (preserve the count)
+2. `sudo bash /home/terence/retro-emulator/site/cutover.sh`
    - installs + starts `emu-site.service`
    - points cloudflared ingress at `http://localhost:8080` and restarts the tunnel
    - disables `nginx` and `emu-counter`
-3. Verify: `curl -s https://emu.terenceang.com/appleii/healthz`, `/api/count`,
-   `curl -sI https://emu.terenceang.com/appleii/ | grep -i cross-origin`
+3. Verify: `curl -s https://emu.terenceang.com/apple2e/healthz`, `/api/count`,
+   `curl -sI https://emu.terenceang.com/apple2e/ | grep -i cross-origin`
 
 ## Rollback
 

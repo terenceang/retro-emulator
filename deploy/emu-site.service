@@ -1,5 +1,5 @@
 [Unit]
-Description=EMU site server (landing + appleii + zx-spectrum + counter)
+Description=EMU site server (landing + apple2e + zx-spectrum + counter)
 After=network.target
 
 [Service]
@@ -8,7 +8,7 @@ User=terence
 Group=terence
 Environment=EMU_SITE_ROOT=/home/terence/emu
 Environment=PORT=8080
-ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/emu-monorepo/site/server.mjs
+ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/retro-emulator/site/server.mjs
 Restart=on-failure
 RestartSec=3
 
@@ -17,7 +17,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/terence/emu-monorepo/site
+ReadWritePaths=/home/terence/retro-emulator/site
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true

@@ -1,4 +1,4 @@
-# emu-monorepo
+# retro-emulator
 
 Single repo for emu.terenceang.com: site server, ops/deploy files, and both emulator codebases.
 
@@ -6,10 +6,10 @@ Single repo for emu.terenceang.com: site server, ops/deploy files, and both emul
 
 | Path | What it is |
 |---|---|
-| `site/` | Live site server (`server.mjs`): landing page + appleii + zx-spectrum + visitor counter |
+| `site/` | Live site server (`server.mjs`): landing page + apple2e + zx-spectrum + visitor counter |
 | `deploy/` | systemd units, cloudflared service, Caddy/nginx config (canonical copies) |
-| `apple-ii/` | Apple //e emulator monorepo (pnpm workspaces) |
-| `zx-spectrum/` | ZX Spectrum emulator monorepo (pnpm workspaces) |
+| `emulator/apple2e/` | Apple //e emulator monorepo (pnpm workspaces) |
+| `emulator/zx-spectrum/` | ZX Spectrum emulator monorepo (pnpm workspaces) |
 
 ## Runtime (unchanged paths)
 

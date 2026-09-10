@@ -11,11 +11,11 @@
  *
  * Layout served (default /home/terence/emu):
  *   /              landing page
- *   /appleii/      Apple //e emulator (static, cross-origin isolated)
+ *   /apple2e/      Apple //e emulator (static, cross-origin isolated)
  *   /zx-spectrum/  ZX Spectrum emulator (static, cross-origin isolated)
  *   /api/count     visitor counter (persisted, IP-throttled)
  *   /healthz       liveness for the tunnel / uptime checks
- *   /appleii/healthz, /zx-spectrum/healthz   origin-relative app heartbeats
+ *   /apple2e/healthz, /zx-spectrum/healthz   origin-relative app heartbeats
  */
 import http from "node:http";
 import { createReadStream, constants as fsConstants } from "node:fs";
@@ -91,7 +91,7 @@ const COOP_COEP = {
   "cross-origin-embedder-policy": "require-corp",
 };
 
-const ISOLATED_PREFIXES = ["/appleii", "/zx-spectrum"];
+const ISOLATED_PREFIXES = ["/apple2e", "/zx-spectrum"];
 const HASHED_ASSET_MARKER = "/assets/";
 
 export function createEmuServer(options = {}) {
@@ -292,7 +292,7 @@ export function createEmuServer(options = {}) {
       }
       const { pathname } = new URL(req.url, "http://localhost");
 
-      if (pathname === "/healthz" || pathname === "/appleii/healthz" || pathname === "/zx-spectrum/healthz") {
+      if (pathname === "/healthz" || pathname === "/apple2e/healthz" || pathname === "/zx-spectrum/healthz") {
         json(req, res, 200, { ok: true });
         return;
       }
