@@ -1,5 +1,5 @@
 #!/bin/bash
-# emu-site cutover — run with sudo:  sudo bash /home/terence/emu-site/cutover.sh
+# emu-site cutover — run with sudo:  sudo bash /home/terence/emu-monorepo/site/cutover.sh
 # Installs the emu-site service, repoints cloudflared at it, retires nginx + emu-counter.
 set -euo pipefail
 
@@ -7,7 +7,7 @@ SYSTEMD=/etc/systemd/system
 CLOUDFLARED_CONFIG=/home/terence/.cloudflared/config.yml
 
 echo "==> Installing emu-site.service"
-cp /home/terence/emu-site/emu-site.service "$SYSTEMD/emu-site.service"
+cp /home/terence/emu-monorepo/deploy/emu-site.service "$SYSTEMD/emu-site.service"
 systemctl daemon-reload
 systemctl enable --now emu-site
 sleep 1

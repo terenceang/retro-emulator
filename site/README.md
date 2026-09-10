@@ -36,8 +36,8 @@ EMU_SITE_ROOT=/home/terence/emu PORT=8080 node server.mjs
 
 ## Cutover
 
-1. `cp /home/terence/emu-counter/count.json /home/terence/emu-site/` (preserve the count)
-2. `sudo bash /home/terence/emu-site/cutover.sh`
+1. `cp /home/terence/backup-repos/emu-counter/count.json /home/terence/emu-monorepo/site/` (preserve the count)
+2. `sudo bash /home/terence/emu-monorepo/site/cutover.sh`
    - installs + starts `emu-site.service`
    - points cloudflared ingress at `http://localhost:8080` and restarts the tunnel
    - disables `nginx` and `emu-counter`
@@ -53,7 +53,7 @@ sudo systemctl restart cloudflared
 sudo systemctl stop emu-site
 ```
 
-Old nginx/systemd configs are preserved in `/home/terence/emu-deploy/`.
+Old nginx/systemd configs are preserved in this repo under `deploy/` (pre-consolidation copies live in `~/backup-repos/`).
 
 ## Notes
 

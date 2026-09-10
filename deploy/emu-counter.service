@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=terence
 Group=terence
-ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/emu-counter/server.mjs
+ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/backup-repos/emu-counter/server.mjs
 Restart=on-failure
 RestartSec=3
 
@@ -15,7 +15,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/terence/emu-counter
+ReadWritePaths=/home/terence/backup-repos/emu-counter
 ProtectKernelTunables=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
