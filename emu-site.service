@@ -1,0 +1,30 @@
+[Unit]
+Description=EMU site server (landing + appleii + zx-spectrum + counter)
+After=network.target
+
+[Service]
+Type=simple
+User=terence
+Group=terence
+Environment=EMU_SITE_ROOT=/home/terence/emu
+Environment=PORT=8080
+ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/emu-site/server.mjs
+Restart=on-failure
+RestartSec=3
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/terence/emu-site
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
