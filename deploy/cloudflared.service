@@ -1,0 +1,29 @@
+[Unit]
+Description=Cloudflare Tunnel (emu.terenceang.com)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=terence
+Group=terence
+Environment=NO_AUTOUPDATER=1
+ExecStart=/home/terence/.local/bin/cloudflared --config /home/terence/.cloudflared/config.yml tunnel run emu
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
