@@ -1,0 +1,115 @@
+import { Speaker } from "../audio/speaker.js";
+import { Cpu6502ts } from "../cpu/cpu6502ts.js";
+import { Mos6502 } from "../cpu/mos6502.js";
+import type { Cpu } from "../cpu/types.js";
+import type { DiskImage } from "../disk/dsk.js";
+import { DiskII } from "../disk/diskII.js";
+import { Keyboard } from "../io/keyboard.js";
+import { Paddle } from "../io/paddle.js";
+import { Memory } from "../memory/memory.js";
+import {
+  SCREEN_HEIGHT,
+  SCREEN_WIDTH,
+  SCREEN_WIDTH_80,
+  VideoState,
+  renderFrame,
+} from "../video/videoEngine.js";
+
+/** ~1.023MHz NTSC Apple II clock / 60 frames-per-second. */
+export const CYCLES_PER_FRAME = 17048;
+export const FPS = 60;
+
+/** Available CPU cores: the table-driven interpreter (default) or the cycle-exact 6502.ts core. */
+export type CpuKind = "interpreter" | "cycle-exact";
+
+const FLASH_HALF_PERIOD_FRAMES = 15; // ~4 toggles/sec at 60fps, close to real hardware's blink rate
+
+export interface Frame {
+  pixels: Uint8Array;
+  width: number;
+  height: number;
+}
+
+export class AppleIIe {
+  readonly memory = new Memory();
+  readonly cpu: Cpu;
+  readonly keyboard = new Keyboard();
+  readonly speaker = new Speaker();
+  readonly paddle = new Paddle();
+  readonly video = new VideoState();
+  readonly disk = new DiskII();
+
+  private flashCounter = 0;
+  private frameCycles = 0;
+  private totalCycles = 0;
+
+  constructor(cpuKind: CpuKind = "interpreter") {
+    this.cpu = cpuKind === "cycle-exact" ? new Cpu6502ts(this.memory) : new Mos6502(this.memory);
+    this.memory.attach();
+    this.video.attach(this.memory);
+    this.keyboard.attach(this.memory);
+    this.keyboard.onBreak = () => {
+      this.cpu.nmiPending = true;
+      this.disk.turnOffMotor();
+    };
+    this.speaker.attach(this.memory);
+    this.disk.attach(this.memory);
+    this.paddle.attach(this.memory, () => this.totalCycles);
+  }
+
+  loadRom(bytes: Uint8Array): void {
+    this.memory.loadRom(bytes);
+  }
+
+  reset(): void {
+    this.memory.reset();
+    this.cpu.reset();
+    this.speaker.reset();
+    this.keyboard.reset();
+    this.totalCycles = 0;
+    this.disk.turnOffMotor();
+    const resetVector = this.memory.read(0xfffc) | (this.memory.read(0xfffd) << 8);
+    // If running with a non-autostart test ROM (e.g. mock NOP ROM used in unit tests),
+    // emulate the hardware power-on shortcut directly into the loaded boot sector.
+    if (resetVector !== 0xfa62 && this.disk.loadBootSectorInto(this.memory)) {
+      this.cpu.pc = 0x0801;
+    }
+  }
+
+  insertDisk(image: DiskImage, drive = 0): void {
+    this.disk.insertDisk(image, drive);
+  }
+
+  ejectDisk(drive?: number): DiskImage | null {
+    return this.disk.ejectDisk(drive);
+  }
+
+  getDisk(drive = 0): DiskImage | null {
+    return this.disk.getDisk(drive);
+  }
+
+  runFrame(): void {
+    this.frameCycles = 0;
+    this.disk.resetMotorActivity();
+    while (this.frameCycles < CYCLES_PER_FRAME) {
+      this.speaker.currentCycle = this.frameCycles;
+      const stepCycles = this.cpu.step();
+      this.frameCycles += stepCycles;
+      this.totalCycles += stepCycles;
+      this.keyboard.step(stepCycles);
+    }
+    this.flashCounter = (this.flashCounter + 1) % (FLASH_HALF_PERIOD_FRAMES * 2);
+  }
+
+  getFrameBuffer(): Frame {
+    const flashOn = this.flashCounter >= FLASH_HALF_PERIOD_FRAMES;
+    const pixels = renderFrame(this.memory, this.video, flashOn);
+    const is80 = this.video.col80 && this.video.textMode;
+    return { pixels, width: is80 ? SCREEN_WIDTH_80 : SCREEN_WIDTH, height: SCREEN_HEIGHT };
+  }
+
+  /** Returns `count` interleaved stereo samples (L,R,L,R,...) for the frame just rendered. */
+  getStereoAudioSamples(count: number): Float32Array {
+    return this.speaker.renderFrame(count, CYCLES_PER_FRAME);
+  }
+}
