@@ -6,6 +6,7 @@ import {
   savePaddleKeyBindings,
   savePaddleType,
 } from "../input/paddleMapping.js";
+import { LS_KEYS } from "../utils/storageKeys.js";
 
 function installLocalStorage(): void {
   const store = new Map<string, string>();
@@ -31,7 +32,7 @@ describe("paddle type persistence", () => {
   });
 
   it("rejects unknown stored values", () => {
-    localStorage.setItem("apple2_paddle_type", "joystick");
+    localStorage.setItem(LS_KEYS.paddleType, "joystick");
     expect(loadPaddleType()).toBe("none");
   });
 });
@@ -48,10 +49,10 @@ describe("paddle key binding persistence", () => {
   });
 
   it("falls back to defaults on corrupt JSON or incomplete bindings", () => {
-    localStorage.setItem("apple2_paddle_bindings", "{not json");
+    localStorage.setItem(LS_KEYS.paddleBindings, "{not json");
     expect(loadPaddleKeyBindings()).toEqual(DEFAULT_PADDLE_KEY_BINDINGS);
 
-    localStorage.setItem("apple2_paddle_bindings", JSON.stringify({ left: "KeyA" }));
+    localStorage.setItem(LS_KEYS.paddleBindings, JSON.stringify({ left: "KeyA" }));
     expect(loadPaddleKeyBindings()).toEqual(DEFAULT_PADDLE_KEY_BINDINGS);
   });
 });

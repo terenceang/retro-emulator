@@ -5,14 +5,14 @@
 ```
 npm run dev         # build MCP server, start it, then Vite dev server
 npm run build        # build all packages in dependency order
-npm run serve        # build everything, then serve packages/app/dist via the express server (:8080)
+npm run serve        # build everything, then vite preview of packages/app/dist (:4173, sends COOP/COEP)
 npm test             # vitest (packages/*/src/**/*.test.ts)
 npm run typecheck    # tsc -b (composite project references)
 npm run lint         # eslint .
 npm run test:all     # typecheck + lint + test (pre-merge gate)
 ```
 
-Build order matters: `core` → `worker` → `app` → `mcp-server` → `server`. The root `npm run build` handles this.
+Build order matters: `core` → `worker` → `app` → `mcp-server`. The root `npm run build` handles this.
 
 ## Monorepo structure
 
@@ -21,10 +21,9 @@ packages/core/      6502 CPU, memory/language-card, video, speaker, Disk II, sav
 packages/worker/    Web Worker host, shared-memory frame/audio ring buffers
 packages/app/       Vite browser app, UI, input mapping, AudioWorklet, IndexedDB storage
 packages/mcp-server/ MCP tool server + WebSocket bridge (ws://localhost:8791)
-packages/server/    Express 5 static server for packages/app/dist + /healthz heartbeat endpoint
 ```
 
-Dependency chain: `worker` → `core`; `app` → `core` + `worker`; `mcp-server` → `core`; `server` → (standalone).
+Dependency chain: `worker` → `core`; `app` → `core` + `worker`; `mcp-server` → `core`.
 
 ## Toolchain
 
@@ -32,6 +31,18 @@ Dependency chain: `worker` → `core`; `app` → `core` + `worker`; `mcp-server`
 - **TypeScript 5.7** with strict mode, composite references, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
 - **Vitest** for tests, **ESLint** with `typescript-eslint`, **Prettier** (100 width, trailing commas)
 - MCP server imports from `../../core/dist/index.js` (built output), so `core` must be built before the MCP server runs
+
+## Deployment & healthz contract
+
+Production is served by the standalone **emu-site** server (`~/emu-site`, its own repo): one
+node:http process serves the landing page plus this app's and the ZX Spectrum's static dists,
+the visitor counter (`/api/count`), and security/COOP/COEP headers for everything. This repo
+ships only a static build — deploy = copy `packages/app/dist/*` to the site root's `appleii/`
+directory.
+
+Healthz contract: the app polls **origin-relative `healthz`** every 5s (4s timeout); **any
+2xx response counts as alive** (the body is never inspected). Keep that contract in sync with
+emu-site's `/appleii/healthz` endpoint.
 
 ## ROM files
 

@@ -66,6 +66,10 @@ the scope of this README.
 - 6502 CPU (all documented opcodes), Apple //e 128K memory architecture (64K main RAM +
   64K aux RAM, 16K bank-switched language card, 80STORE, RAMRD, RAMWRT, ALTZP, and INTCXROM
   soft switches), keyboard, speaker, and paddle emulation.
+- Keyboard modeled on the IIe: ASCII latch with strobe, key auto-repeat, Ctrl+Reset, and the
+  hardware caps switch — up latches lowercase codes ($61-$7A), down or Shift latches uppercase
+  ($41-$5A) — driven by the host CapsLock key or the CAPS badge in the toolbar, persisted
+  across reloads.
 - Video: TEXT40, TEXT80, LORES, HIRES, and MIXED mode, rendered to a 280x192 (560x192 in 80-column) canvas.
 - Disk II controller with two drives, read/write support, and write-protect sensing.
 - Save states (5 slots, thumbnails, F5/F8 quick save/load), a disk library (IndexedDB-backed,
@@ -106,15 +110,18 @@ packages/
   worker/       Web Worker host + shared-memory frame/audio ring buffers
   app/          Vite app: UI, input mapping, audio, IndexedDB-backed storage
   mcp-server/   MCP tool server + browser bridge (WebSocket, ws://localhost:8791)
-  server/       Express 5 static server for the built app + /healthz heartbeat
 ```
+
+Production hosting is provided by the separate **emu-site** server, which serves this app's
+static build (plus the landing page, the ZX Spectrum dist, and the visitor counter) — this
+repo deploys by copying `packages/app/dist/*` to the site's `appleii/` directory.
 
 ## Scripts
 
 ```
 npm run dev         # builds the MCP server, runs it, and starts the Vite dev server
 npm run build        # builds all packages in dependency order
-npm run serve        # builds everything and serves packages/app/dist at http://localhost:8080
+npm run serve        # builds everything and vite-previews packages/app/dist at http://localhost:4173
 npm test              # runs the vitest suite
 npm run typecheck  # tsc -b across the whole monorepo
 npm run lint            # eslint .

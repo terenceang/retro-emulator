@@ -21,6 +21,11 @@ import { z } from "zod";
 import { callInstance, connectedInstanceIds, resolveInstance } from "./bridge.js";
 import { encodeIndexedFramePng } from "./png.js";
 
+// Single source of truth for the advertised version: this package's manifest.
+const { version: MCP_SERVER_VERSION } = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
+
 const instanceIdSchema = { instanceId: z.string().optional() };
 
 let machine: AppleIIe | null = null;
@@ -45,7 +50,7 @@ function detectDiskFormat(path: string): DiskFormat {
   return format;
 }
 
-const server = new McpServer({ name: "apple2", version: "0.5.0" });
+const server = new McpServer({ name: "apple2", version: MCP_SERVER_VERSION });
 
 server.registerTool(
   "load_rom",
