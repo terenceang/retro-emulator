@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TA://APPLE II — Apple //e Emulator</title>
+    <title>TA://__MACHINE_NAME_CAPS__ — __MACHINE_NAME__ Emulator</title>
     <meta
       name="description"
-      content="Apple //e emulation in pure TypeScript & Web Workers with zero-latency audio, Disk II, and save states."
+      content="__MACHINE_NAME__ emulation in pure TypeScript & Web Workers with zero-latency audio, Disk II, and save states."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
@@ -22,7 +22,7 @@
             target="_blank"
             rel="noopener"
           >
-            TA<span class="logo-sep">://</span><span class="brand-tag">APPLE II</span>
+            TA<span class="logo-sep">://</span><span class="brand-tag">__MACHINE_NAME_CAPS__</span>
           </a>
           <div class="apple-ribbon" title="Apple Rainbow Ribbon">
             <span class="c-green"></span>
@@ -33,9 +33,14 @@
             <span class="c-blue"></span>
           </div>
         </div>
-        <div id="gamepad-indicator" title="HID gamepad connection">
-          <span class="dot"></span>
-          <span id="gamepad-indicator-text">Gamepad: none</span>
+        <div class="top-bar-right">
+          <nav class="top-nav" aria-label="Site navigation">
+            <a href="/" class="top-nav-link" title="Back to the machine room">← MACHINE ROOM</a>
+          </nav>
+          <div id="gamepad-indicator" title="HID gamepad connection">
+            <span class="dot"></span>
+            <span id="gamepad-indicator-text">Gamepad: none</span>
+          </div>
         </div>
       </div>
     </header>
@@ -239,7 +244,7 @@
           <div class="memory-info-card" id="memory-info-card">
             <div class="memory-info-row">
               <span class="info-label">Model:</span>
-              <span class="info-val">Apple //e Enhanced</span>
+              <span class="info-val">__MACHINE_NAME__ Enhanced</span>
             </div>
             <div class="memory-info-row">
               <span class="info-label">Memory:</span>
@@ -329,7 +334,7 @@
         <div class="controls-panel-group">
           <span class="section-label">MACHINE</span>
           <div class="control-group">
-            <label class="control-file-btn" for="rom-input" id="rom-file-btn" title="Load Apple IIe ROM: one 16KB file, or the two 8KB CD/EF chip dumps together">
+            <label class="control-file-btn" for="rom-input" id="rom-file-btn" title="Load __MACHINE_NAME__ ROM: one 16KB file, or the two 8KB CD/EF chip dumps together">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                 <polyline points="17 8 12 3 7 8"></polyline>
@@ -499,7 +504,7 @@
     <main class="app-container" id="app-container">
       <section class="app-header">
         <div class="hero-glow" aria-hidden="true"></div>
-        <h1 class="app-title">Apple //e<span class="cursor-blink" aria-hidden="true">█</span></h1>
+        <h1 class="app-title">__MACHINE_NAME__<span class="cursor-blink" aria-hidden="true">█</span></h1>
         <p class="app-subtitle">
           Browser emulator in TypeScript &amp; Web Workers · Disk II · Zero-latency AudioWorklet
         </p>
@@ -576,12 +581,12 @@
         </div>
 
         <div class="screen-frame" id="screen-frame">
-          <canvas id="screen" width="280" height="192" aria-label="Apple II Screen Output"></canvas>
+          <canvas id="screen" width="280" height="192" aria-label="__MACHINE_NAME__ Screen Output"></canvas>
         </div>
 
         <div class="status-console" role="status" aria-live="polite">
           <span class="status-prompt">]</span>
-          <div id="status">Load an Apple IIe ROM to begin.</div>
+          <div id="status">Load an __MACHINE_NAME__ ROM to begin.</div>
         </div>
       </div>
 
@@ -595,7 +600,7 @@
     <div id="setup-modal" class="modal-overlay" style="display: none">
       <div class="modal" role="dialog" aria-modal="true" aria-label="ROM Setup">
         <div class="modal-header">
-          <h2 class="modal-title">Apple //e</h2>
+          <h2 class="modal-title">__MACHINE_NAME__</h2>
           <p class="modal-subtitle">Load a ROM to begin</p>
         </div>
         <div class="modal-body">
@@ -614,7 +619,7 @@
               One 16,384-byte (16KB, $C000-$FFFF) file, the two 8,192-byte chip dumps ("CD" =
               $C000-$DFFF, "EF" = $E000-$FFFF) selected together, a 12,288-byte ($D000-$FFFF-only)
               file, or a 32,768-byte combined dump (e.g. "APPLE2E.ROM" — only its second half is
-              used) — from your own legally-owned Apple IIe. Not bundled — see the README for why.
+              used) — from your own legally-owned __MACHINE_NAME__. Not bundled — see the README for why.
             </p>
           </div>
         </div>

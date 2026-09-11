@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
 import { COOP_COEP_HEADERS } from "../../../coop-coep.mjs";
+import { MACHINE_NAME, MACHINE_NAME_CAPS } from "./src/constants";
 
 // Single source of truth for the displayed version: package.json. The build
 // stamps it into index.html wherever the __APP_VERSION__ token appears.
@@ -12,7 +13,10 @@ function injectVersion(): Plugin {
   return {
     name: "inject-version",
     transformIndexHtml(html) {
-      return html.replaceAll("__APP_VERSION__", pkg.version);
+      return html
+        .replaceAll("__APP_VERSION__", pkg.version)
+        .replaceAll("__MACHINE_NAME_CAPS__", MACHINE_NAME_CAPS)
+        .replaceAll("__MACHINE_NAME__", MACHINE_NAME);
     },
   };
 }

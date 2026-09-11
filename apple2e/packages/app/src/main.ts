@@ -13,6 +13,7 @@ import { createPauseUi } from "@retro/framework/pause-ui";
 import { createFullscreenUi } from "@retro/framework/fullscreen-ui";
 import { escapeHtml, stripExtension } from "@retro/framework/text";
 import { sleep } from "@retro/framework/timing";
+import { MACHINE_NAME } from "./constants";
 import { DEFAULT_SAMPLE_RATE } from "../../worker/src/protocol.js";
 import { keyEventToAscii } from "./input/keyMapping.js";
 import {
@@ -348,7 +349,7 @@ function updateRomUi(filename?: string): void {
       romFileBtn?.setAttribute("title", `Loaded ROM: ${stored.filename} (click to change)`);
     } else {
       romFileText.textContent = "Load ROM…";
-      romFileBtn?.setAttribute("title", "Load Apple IIe ROM (.rom, .bin)");
+      romFileBtn?.setAttribute("title", `Load ${MACHINE_NAME} ROM (.rom, .bin)`);
     }
   }
 }
@@ -1236,8 +1237,8 @@ updateCapsUi();
 
 function romRestoredStatus(romFilename: string | undefined, media: StoredMedia | null): string {
   return media
-    ? `ROM restored (${romFilename ?? "Apple //e"}). Loaded "${media.filename}". Ready.`
-    : `ROM restored (${romFilename ?? "Apple //e"}). Insert a disk to boot, or use the Monitor.`;
+    ? `ROM restored (${romFilename ?? MACHINE_NAME}). Loaded "${media.filename}". Ready.`
+    : `ROM restored (${romFilename ?? MACHINE_NAME}). Insert a disk to boot, or use the Monitor.`;
 }
 
 async function onFirstGesture(): Promise<boolean> {
@@ -1368,7 +1369,7 @@ window.addEventListener("keydown", (e) => {
   }
   const ascii = keyEventToAscii(e, capsLockDown);
   if (ascii === null) {
-    if (!e.repeat) logEvent(`key ${e.code} ignored — no Apple II mapping`, "debug");
+    if (!e.repeat) logEvent(`key ${e.code} ignored — no ${MACHINE_NAME} mapping`, "debug");
     return;
   }
   e.preventDefault();
