@@ -32,8 +32,7 @@ Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
 | `/api/count` | Visitor counter (IP-throttled, atomic persist) |
 | `/healthz` | Root liveness for tunnel/uptime checks |
 
-Headers are defined once here: security set (CSP allows the MCP bridge
-`ws://localhost:8791`/`8790`), COOP/COEP on the two emulator subpaths,
+Headers are defined once here: security set, COOP/COEP on the two emulator subpaths,
 `immutable` caching for hashed `assets/` bundles, `no-cache` for HTML,
 gzip for compressible types.
 

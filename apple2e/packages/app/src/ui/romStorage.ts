@@ -1,4 +1,4 @@
-import { arrayBufferToBase64, base64ToArrayBuffer } from "../utils/base64.js";
+import { arrayBufferToBase64, base64ToArrayBuffer } from "@retro/framework/base64";
 import { LS_KEYS } from "../utils/storageKeys.js";
 
 export interface StoredRom {

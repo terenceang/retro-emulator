@@ -2,14 +2,18 @@
 
 A browser-based Apple //e (Enhanced) emulator written in pure TypeScript, with the 6502 CPU and
 machine running in a Web Worker off the main thread. Built the same way as the ZX Spectrum
-emulator this repo is a sibling of: a small monorepo (`core` / `worker` / `app` / `mcp-server` /
-`server`), zero-latency `AudioWorklet` audio, disk-image support, save states, and an MCP bridge
-so an AI agent (or any MCP client) can drive a running instance.
+emulator this repo is a sibling of: a small monorepo (`core` / `worker` / `app` / `server`),
+zero-latency `AudioWorklet` audio, disk-image support, and save states.
 
 ## Quickstart
 
+This module is part of a root npm workspace (the `retro-emulator` repo root, one level up) —
+install from there, then run this module's own scripts from here:
+
 ```
+cd ..
 npm install
+cd apple2e
 npm run dev
 ```
 
@@ -75,11 +79,6 @@ the scope of this README.
 - Save states (5 slots, thumbnails, F5/F8 quick save/load), a disk library (IndexedDB-backed,
   search/rename/bulk-delete), and a paddle/gamepad input mapper — same dark "dev console" UI
   shell as the ZX Spectrum project this was built alongside.
-- An MCP server (`packages/mcp-server`) exposing `load_rom`, `insert_disk`, `eject_disk`,
-  `reset`, `run_frames`, `press_key`, `type_text`, `read_screen`, `save_snapshot`,
-  `load_snapshot`, `get_status`, and `list_instances` — usable headlessly or against a live
-  connected browser tab (connect via the MCP indicator in the app's System tab; disabled by
-  default).
 - Server-gated page: the app polls `/healthz` on its origin every 5 s; if the serving server
   stops responding, the page is disabled behind a "Not Connected" modal until it responds again.
 
@@ -109,8 +108,12 @@ packages/
   core/         6502 CPU, memory/language-card, video, speaker, Disk II, save states
   worker/       Web Worker host + shared-memory frame/audio ring buffers
   app/          Vite app: UI, input mapping, audio, IndexedDB-backed storage
-  mcp-server/   MCP tool server + browser bridge (WebSocket, ws://localhost:8791)
 ```
+
+`worker` and `app` also depend on `@retro/framework` (`../framework` at the repo root) for the
+generic, non-Apple-specific infra shared with the ZX Spectrum sibling project: the ring-buffer
+transport, the `EmulatorClient`/`AudioSink` base classes, and the IndexedDB/base64 helpers. See
+`../framework`'s own layout for what lives there — nothing Apple-//e-specific does.
 
 Production hosting is provided by the separate **emu-site** server, which serves this app's
 static build (plus the landing page, the ZX Spectrum dist, and the visitor counter) — this
@@ -119,7 +122,7 @@ repo deploys by copying `packages/app/dist/*` to the site's `apple2e/` directory
 ## Scripts
 
 ```
-npm run dev         # builds the MCP server, runs it, and starts the Vite dev server
+npm run dev         # starts the Vite dev server
 npm run build        # builds all packages in dependency order
 npm run serve        # builds everything and vite-previews packages/app/dist at http://localhost:4173
 npm test              # runs the vitest suite

@@ -1,4 +1,4 @@
-import { deleteDb } from "./idb.js";
+import { deleteDb } from "@retro/framework/idb";
 import { IDB_DATABASES, LS_KEYS } from "./storageKeys.js";
 
 export async function clearAllClientStorage(): Promise<void> {

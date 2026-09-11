@@ -1,5 +1,5 @@
 import type { MachineModel } from "@zx-spectrum/core";
-import { arrayBufferToBase64, base64ToArrayBuffer } from "../utils/base64.js";
+import { arrayBufferToBase64, base64ToArrayBuffer } from "@retro/framework/base64";
 
 const ROM_KEY_48K = "zx_spectrum_rom_48k";
 const ROM_KEY_128K = "zx_spectrum_rom_128k";

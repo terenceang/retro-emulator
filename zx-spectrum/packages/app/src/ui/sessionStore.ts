@@ -1,5 +1,5 @@
 import type { MediaFormat } from "@zx-spectrum/core";
-import { idbRequest, idbTx, openDb } from "../utils/idb.js";
+import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
 
 export interface StoredMedia {
   filename: string;

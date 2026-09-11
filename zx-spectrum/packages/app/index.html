@@ -6,7 +6,7 @@
     <title>TA://SPECTRUM — Sinclair ZX Spectrum Emulator</title>
     <meta
       name="description"
-      content="Cycle-accurate 48K / 128K Sinclair ZX Spectrum emulation in pure TypeScript & Web Workers with zero-latency audio and MCP bridge."
+      content="Cycle-accurate 48K / 128K Sinclair ZX Spectrum emulation in pure TypeScript & Web Workers with zero-latency audio."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
@@ -522,7 +522,7 @@
         id="controls-system-toggle"
         class="btn panel-tab panel-tab-right"
         type="button"
-        title="Toggle System info (MCP bridge, diagnostics, logs)"
+        title="Toggle System info (diagnostics, logs)"
         aria-label="Toggle System info"
       >
         <svg
@@ -697,14 +697,6 @@
 
       <div id="panel-controls-system-tab" class="panel-tab-content controls-panel-body" style="display: none">
         <div class="controls-panel-group">
-          <span class="section-label">MCP BRIDGE</span>
-          <div id="mcp-indicator" title="MCP agent bridge connection (ws://localhost:3005)">
-            <span class="dot"></span>
-            <span id="mcp-indicator-text">MCP: offline</span>
-          </div>
-        </div>
-
-        <div class="controls-panel-group">
           <span class="section-label">DIAGNOSTICS</span>
           <div class="diagnostic-info-card" id="diagnostic-info-card">
             <div class="diagnostic-info-row">
@@ -807,7 +799,7 @@
         </h1>
         <p class="app-subtitle">
           48K / 128K / +3 browser emulator in TypeScript &amp; Web Workers · Zero-latency
-          AudioWorklet · MCP bridge
+          AudioWorklet
         </p>
       </section>
 

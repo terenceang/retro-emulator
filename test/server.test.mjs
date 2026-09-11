@@ -68,16 +68,6 @@ test("security headers are on every response; COOP/COEP only on isolated subpath
   });
 });
 
-test("CSP allows the MCP bridge localhost ports", async () => {
-  await withServer(async (base) => {
-    const res = await fetch(`${base}/apple2e/`);
-    assert.match(
-      res.headers.get("content-security-policy"),
-      /connect-src 'self' ws:\/\/localhost:8791 ws:\/\/localhost:8790/,
-    );
-  });
-});
-
 test("serves index.html for directories, correct cache per file class", async () => {
   await withServer(async (base) => {
     const page = await fetch(`${base}/apple2e/`);

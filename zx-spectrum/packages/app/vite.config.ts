@@ -1,6 +1,9 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
+  // Relative asset URLs so the built app works both at the server root and
+  // under a subpath (emu.terenceang.com/zx-spectrum/).
+  base: "./",
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",

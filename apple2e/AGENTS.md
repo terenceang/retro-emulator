@@ -1,9 +1,16 @@
 # Apple //e Emulator — Agent Guide
 
+This module is one workspace member of a root npm workspace (`retro-emulator/`, one level up
+— its `package.json` lists `workspaces: ["framework", "apple2e/packages/*",
+"zx-spectrum/packages/*"]`). **Run `npm install` from the repo root, not from here** — this
+directory has its own `package.json` only as a convenience script runner (`npm run
+dev`/`build`/`test:all` etc. work as usual from inside it), not a workspace root itself; it has
+no `package-lock.json` or `devDependencies` of its own.
+
 ## Quick commands
 
 ```
-npm run dev         # build MCP server, start it, then Vite dev server
+npm run dev         # start the Vite dev server
 npm run build        # build all packages in dependency order
 npm run serve        # build everything, then vite preview of packages/app/dist (:4173, sends COOP/COEP)
 npm test             # vitest (packages/*/src/**/*.test.ts)
@@ -12,7 +19,7 @@ npm run lint         # eslint .
 npm run test:all     # typecheck + lint + test (pre-merge gate)
 ```
 
-Build order matters: `core` → `worker` → `app` → `mcp-server`. The root `npm run build` handles this.
+Build order matters: `core` → `worker` → `app`. The root `npm run build` handles this.
 
 ## Monorepo structure
 
@@ -20,17 +27,23 @@ Build order matters: `core` → `worker` → `app` → `mcp-server`. The root `n
 packages/core/      6502 CPU, memory/language-card, video, speaker, Disk II, save states
 packages/worker/    Web Worker host, shared-memory frame/audio ring buffers
 packages/app/       Vite browser app, UI, input mapping, AudioWorklet, IndexedDB storage
-packages/mcp-server/ MCP tool server + WebSocket bridge (ws://localhost:8791)
 ```
 
-Dependency chain: `worker` → `core`; `app` → `core` + `worker`; `mcp-server` → `core`.
+Dependency chain: `worker` → `core` + `@retro/framework`; `app` → `core` + `worker` +
+`@retro/framework`. `@retro/framework` (`../../framework`, a sibling workspace member at the
+repo root — see its own AGENTS.md/README) holds the generic, non-Apple-specific harness code
+shared with the ZX Spectrum sibling project: `ring-buffer.ts` (the SharedArrayBuffer frame/audio
+ring primitives — `worker/protocol.ts` re-exports its header-length constants/helpers rather
+than restating them), `emulator-client.ts` (the `EmulatorClientBase` class `worker-client.ts`'s
+`EmulatorClient` extends), `audio-sink.ts` (the `AudioSink` class `main.ts` instantiates with
+this module's own worklet URL/name/sample-rate), `idb.ts`, and `base64.ts`. `core` itself has no
+framework dependency — it's genuinely 6502/Apple-//e-specific and shares nothing.
 
 ## Toolchain
 
 - **Node 22** (`.nvmrc`)
 - **TypeScript 5.7** with strict mode, composite references, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`
 - **Vitest** for tests, **ESLint** with `typescript-eslint`, **Prettier** (100 width, trailing commas)
-- MCP server imports from `../../core/dist/index.js` (built output), so `core` must be built before the MCP server runs
 
 ## Deployment & healthz contract
 
@@ -52,10 +65,6 @@ No ROM is bundled in the repo (Apple copyright). The `rom/` and `Disk/` director
 - 12KB basic/monitor-only dump ($D000-$FFFF)
 - 32KB combined dump (only second 16KB used)
 
-## MCP server
-
-The MCP server runs headlessly via stdio (`apple2-mcp` binary). When a browser tab connects to `ws://localhost:8791`, tools auto-route to the browser instance; otherwise they use a private headless `AppleIIe` machine. Key timing detail: `press_key` must hold the key for a few `run_frames` calls (down → run_frames → up).
-
 ## Testing notes
 
 - All tests live in `packages/*/src/test/` (one folder per package, enforced by the vitest include pattern) — never colocate `*.test.ts` with sources
@@ -73,12 +82,11 @@ The MCP server runs headlessly via stdio (`apple2-mcp` binary). When a browser t
   one, and each has independent motor/track/write-protect state. On disk tracks, address
   fields are labeled with physical sector numbers (0..15); DOS 3.3 RWTS handles logical-to-physical
   interleaving in software via its internal `SECTBL` ($3FB8).
-- The MCP png test needs no build (png.ts only imports node:zlib)
 
 ## Single sources of truth
 
-- Shared constants/types live in `core`: `SPECIAL_KEY_CODES` (io/keyboardCodes.ts), `diskFormatFromPath` + `DISK_EXTENSIONS` (disk/dsk.ts), `Frame` (machines/appleIIe.ts), MCP port + wire commands (io/bridgeProtocol.ts)
-- `worker/protocol.ts` derives frame/audio constants from core's `FPS`/screen sizes and re-exports `Frame`/`DiskStatus` — never restate them elsewhere
+- Shared constants/types live in `core`: `SPECIAL_KEY_CODES` (io/keyboardCodes.ts), `diskFormatFromPath` + `DISK_EXTENSIONS` (disk/dsk.ts), `Frame` (machines/appleIIe.ts)
+- `worker/protocol.ts` derives frame/audio constants from core's `FPS`/screen sizes, re-exports `Frame`/`DiskStatus`, and re-exports the ring-buffer header constants/helpers (`FRAME_HEADER_INT32_LENGTH`, `AUDIO_HEADER_INT32_LENGTH`, `frameBufferByteLength`, `audioBufferByteLength`) from `@retro/framework/ring-buffer` — never restate any of these elsewhere
 - Browser storage keys + IndexedDB names: `app/src/utils/storageKeys.ts` (`storageClear.ts` derives its purge list from it, so new keys are covered automatically)
 - Drive UI is created per-drive via `app/src/ui/driveUi.ts` (`createDriveUi(0|1)`) — do not add per-drive DOM refs or branchy `drive === 1` UI copies
 

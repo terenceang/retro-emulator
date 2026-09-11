@@ -2,7 +2,10 @@
 
 ## Repo layout
 
-npm workspaces monorepo, TypeScript project references enforcing module boundaries:
+This module's `packages/*` are members of a root npm workspace (`retro-emulator/`, one level
+up — install with `npm install` from there, not from here), alongside its sibling `apple2e`
+emulator and a shared `framework` package. TypeScript project references enforce module
+boundaries:
 
 - `packages/core` — pure TS emulator engine (Z80 CPU, memory devices `Memory48k`,
   `Memory128k`, `MemoryPlus3`, ULA, loaders, disk controller `Fdc765` and `.dsk` parser/writer,
@@ -10,19 +13,26 @@ npm workspaces monorepo, TypeScript project references enforcing module boundari
   No DOM, no Worker APIs — its `tsconfig.json` sets `"lib": ["ES2022"]` with no `"DOM"`,
   so any accidental `window`/`document`/`postMessage` dependency fails to compile.
   This is what keeps the core testable in plain Node/Vitest and reusable outside the Worker.
+  Genuinely Z80/Spectrum-specific; has no dependency on `framework`.
 - `packages/worker` — Web Worker glue: owns live `Machine48k`, `Machine128k`, and `MachinePlus3`
   instances (inheriting from `BaseMachine`), handles on-the-fly snapshot export conversion (`exportState`),
-  the `postMessage` protocol (`protocol.ts`), and the `SharedArrayBuffer` ring-buffer implementations
-  (`ring-buffers.ts`) for tear-free frame and stereo audio transport.
+  and the `postMessage` protocol (`protocol.ts`) — which re-exports the ring-buffer header
+  constants/helpers from `@retro/framework/ring-buffer` (`../../../framework`) rather than
+  restating them; the `SharedArrayBuffer` ring-buffer implementations themselves
+  (`FrameRingWriter`/`FrameRingReader`/`AudioRing`) live there too, shared verbatim with `apple2e`.
 - `packages/app` — Vite + vanilla TS UI shell: canvas display, keyboard/joystick input
   mapping, ROM/snapshot/tape/disk file loading, Web Audio stereo playback, IndexedDB-backed
-  tape library and 5-slot save state manager.
+  tape library and 5-slot save state manager. `worker-client.ts`'s `EmulatorClient` extends
+  `@retro/framework/emulator-client`'s `EmulatorClientBase`; `audio/audioSink.ts` is gone —
+  `main.ts` now instantiates `@retro/framework/audio-sink`'s `AudioSink` directly, passing this
+  module's own worklet URL/name/sample rate; the IndexedDB and base64 helpers under `utils/`
+  are gone too, replaced by `@retro/framework/idb` and `@retro/framework/base64`.
 - `packages/test-fixtures` — test-only binary assets (zexdoc.com/zexall.com CPU
   exerciser binaries).
-- `packages/mcp-server` — headless MCP server exposing `Machine48k`/`Machine128k`/`MachinePlus3`
-  (driven polymorphically through `BaseMachine`) as MCP tools (load ROM/snapshot/tape, insert/eject disk,
-  save snapshot as `.sna`/`.z80`, press keys, run frames, read the screen as a PNG) so an MCP
-  client can drive and inspect the emulator without a browser.
+
+See `../framework/README.md` for what's actually in the shared package and why (it also covers
+a Vite worker-bundling gotcha worth knowing before touching `worker-client.ts` or `audioSink.ts`
+usage).
 
 ## Z80 CPU core (`packages/core/src/cpu/`)
 
@@ -96,7 +106,12 @@ when running in 48K mode.
 
 Primary path: `SharedArrayBuffer` — a seqlock-protected frame buffer (tear-free
 reads without needing two full buffer copies) and a lock-free single-producer/
-single-consumer stereo audio ring (`AudioRing`), both in `packages/worker/src/ring-buffers.ts`.
+single-consumer stereo audio ring (`AudioRing`), both in `@retro/framework/ring-buffer`
+(`../../framework/src/ring-buffer.ts`) — shared verbatim with `apple2e`, not module-local
+anymore. Note `AudioRing`'s exported surface here only covers the *write* side (what
+`emulator.worker.ts` calls); the real-time *read* side is a separate, still-duplicated
+implementation in the `AudioWorkletProcessor` below (see `../framework/README.md` for why it
+isn't shared too).
 Audio samples are stored as interleaved `[left, right]` float pairs (capacity: 8192 sample pairs = 16384 floats).
 An `AudioWorkletProcessor` (`packages/app/src/audio/beeper-processor.ts`) reads the
 audio ring directly on its own realtime thread, filling stereo audio output channels — audio never
@@ -133,22 +148,21 @@ Tape loading supports two operational modes:
    `HL = checksum`, `C = 1`), and routes return cleanly (to `0x053F: SA-ALL` cleanup for `0x0556`, or popping
    the caller's return address for `0x0569`). If a game switches to a custom turbo loader that bypasses
    ROM routines, the pulse player seamlessly continues real-time audio pulse playback from the exact block boundary.
-   Configurable via `BaseMachine.fastTapeLoad`, worker protocol message `setFastTapeLoad`, UI toggle
-   (`fast-tape-toggle` with `localStorage` persistence, living in the Tape Player section's options
-   row alongside `tape-sound-toggle`), and MCP server tools (`set_fast_tape_load`,
-   `load_tape` with `fastLoad` option).
+   Configurable via `BaseMachine.fastTapeLoad`, worker protocol message `setFastTapeLoad`, and the
+   UI toggle (`fast-tape-toggle` with `localStorage` persistence, living in the Tape Player
+   section's options row alongside `tape-sound-toggle`).
 
    **Loading tones are unconditionally suppressed while `fastTapeLoad` is active**, regardless of
    the `tape-sound-toggle`/Loading-tones checkbox: `BaseMachine.mixAudio`/`mixAudioStereo` gate tape
    audio on `this.tapeSoundEnabled && !this.fastTapeLoad && this.tape.isPlaying()`. This lives at the
    audio-mixing level rather than in the UI, so it holds no matter which caller triggered the fast
-   load (Play button, library load, or the MCP bridge) — without it, the tape's real-time pulse
+   load (Play button or library load) — without it, the tape's real-time pulse
    position is decoupled from the trap-driven block transfer, so leftover screech audio would keep
    playing in the background for the tape's full real duration even after the game had already
    finished loading and started running.
 
 Tapes load into the cassette player in the **stopped** state (`isPlaying === false`). Playback is started
-via the UI Play button, worker protocol `playTape` message, or MCP `play_tape` tool. When `fastTapeLoad`
+via the UI Play button or worker protocol `playTape` message. When `fastTapeLoad`
 is active, any tape playback running during ROM loader routines (`0x0556` or `0x0569`) transfers blocks
 instantly into memory.
 
@@ -257,39 +271,6 @@ keyboard input, tape playback, and audio extraction (`getAudioSamples`).
   - `.dsk` Parser & Writer (`packages/core/src/disk/dsk.ts`): Parses Standard CPC ("MV - CPC") and Extended CPC disk images, sector track headers, and data blocks.
   - Disk operations wire through the worker protocol (`insertDisk`, `ejectDisk`, `diskStatus`).
 
-### MCP server (`packages/mcp-server`)
-
-A thin headless wrapper: one live `Machine48k`/`Machine128k`/`MachinePlus3` instance, no worker or
-`SharedArrayBuffer` transport (a tool call and its reply are already a natural
-request/reply boundary, so the seqlock/ring-buffer machinery the browser needs for
-tear-free 60fps rendering doesn't apply here). `load_rom` replaces the machine
-outright rather than keeping models alive simultaneously the way the app's
-worker does for live in-browser switching. It supports loading 48K, 128K, or +3 ROMs
-(either 4 separate 16KB ROMs or a single 64KB image).
-
-Snapshots can be loaded via `load_snapshot` (`.sna` or `.z80`) or saved via `save_snapshot`
-in either `.sna` or `.z80` format. Disk images (`.dsk`) can be inserted or ejected on +3
-via `insert_disk` and `eject_disk`.
-
-Imports core via a relative path to its compiled `dist/` output
-(`../../core/dist/index.js`), not the `@zx-spectrum/core` package name — that name
-resolves to core's raw `.ts` source (via `package.json` "main"), which Vite
-transforms on the fly for the app/worker but plain Node can't execute directly.
-Composite TS project references mean `tsc -b` here already builds core first.
-Mirrors the same relative-import pattern `packages/app/src/worker-client.ts` uses
-for the worker package, for the same underlying reason.
-
-`read_screen` returns a PNG. Node's `zlib` supplies the DEFLATE compression PNG
-needs; CRC32 isn't in `zlib`'s API, so `png.ts` hand-rolls the standard table-driven
-algorithm rather than adding a PNG library for what's otherwise a ~100-line encoder.
-
-The key-matrix data `press_key`/`get_status` need (`SPECTRUM_KEY_MATRIX`,
-`SYMBOL_SHIFT_CHARS`) lives in `packages/core/src/io/spectrumKeys.ts` — it's a fact
-about the machine's hardware, not about any particular input device, so unlike
-`packages/app/src/input/keyMapping.ts` (which translates _browser_ `KeyboardEvent`
-codes to these same coordinates, a genuinely device-specific concern) it belongs in
-core and both packages import the one copy.
-
 ### Joystick emulation
 
 Kempston is real hardware — it's a byte read on I/O port 0x1F, active-high,
@@ -312,16 +293,18 @@ selected decides where that event goes: `client.sendJoystick()` (a
 type at runtime releases whatever the old mapping was holding down before
 applying the new one, so a direction can't get stuck pressed.
 
-The bridge protocol wire format (`BridgeCommand`), port number (`MCP_BRIDGE_PORT`),
-and recognized file extension maps (`SNAPSHOT_EXTENSIONS`, `TAPE_EXTENSIONS`, `DISK_EXTENSIONS`) are
-defined in `packages/core/src/io/bridgeProtocol.ts` and shared across both the MCP
-server and the browser UI as a single source of truth.
+The recognized file extension maps (`SNAPSHOT_EXTENSIONS`, `TAPE_EXTENSIONS`, `DISK_EXTENSIONS`)
+are defined in `packages/core/src/io/mediaFormats.ts` as a single source of truth.
 
 Shared ring buffer geometry constants (`MAX_FRAME_WIDTH`, `MAX_FRAME_HEIGHT`,
 `AUDIO_CAPACITY_SAMPLES`, `DEFAULT_SAMPLE_RATE`, `SPECTRUM_FPS`) are defined in
-`packages/worker/src/protocol.ts`. The `AudioWorkletProcessor` (`beeper-processor.ts`)
-directly instantiates `AudioRing` from `packages/worker/src/ring-buffers.ts` rather
-than reimplementing the lock-free read logic.
+`packages/worker/src/protocol.ts`. **Correction to a previously-stale claim here:** the
+`AudioWorkletProcessor` (`packages/app/public/beeper-processor.js`, loaded by URL — Vite
+doesn't bundle `public/`) does *not* import `AudioRing` — it can't, since `public/` assets
+aren't part of the module graph. It hand-duplicates an `AudioRingReader` class with the same
+seqlock read/prebuffering logic instead (also mirrored, kept in sync by hand, in the typed
+`packages/app/src/audio/beeper-processor.ts`). This is real, live duplication, left as-is — see
+`../framework/README.md`.
 
 ## ROM and session persistence
 
@@ -363,7 +346,6 @@ that shift with their panel via `body.library-open`/`body.controls-open` classes
   - **OPTIONS**: Normal keyboard toggle.
   - **JOYSTICK**: Emulated type selector (`#joystick-type-select`: None/Kempston/Sinclair 1/Sinclair 2/Cursor/QAOP),
     key-remap modal launcher (`#joystick-setup-btn` → `#joystick-modal`), and HID gamepad connection indicator (`#gamepad-indicator`).
-  - **MCP BRIDGE**: Live server bridge connection indicator (`#mcp-indicator`).
   - **DIAGNOSTICS**: Live emulation performance telemetry and FPS display (`#fps-val`).
   - **LOGS**: Scrollable activity log (`#log-container`), with level-coded timestamped entries, Save Log text export (`#save-log-btn`), and clear actions (`#clear-log-btn`).
 

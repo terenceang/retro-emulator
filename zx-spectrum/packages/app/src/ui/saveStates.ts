@@ -1,5 +1,5 @@
 import type { MachineModel } from "@zx-spectrum/core";
-import { idbRequest, idbTx, openDb } from "../utils/idb.js";
+import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
 
 const DB_NAME = "zx_save_states";
 const STORE_NAME = "states";

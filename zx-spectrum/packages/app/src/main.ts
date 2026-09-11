@@ -1,15 +1,14 @@
 import {
   DISK_EXTENSIONS,
-  MCP_BRIDGE_PORT,
   ROM_PAGE_SIZE,
   SNAPSHOT_EXTENSIONS,
   TAPE_EXTENSIONS,
   detectTapeMachine,
   is128kOrAboveTape,
-  type BridgeCommand as McpBridgeCommand,
   type MachineModel,
 } from "@zx-spectrum/core";
-import { AudioSink } from "./audio/audioSink.js";
+import { AudioSink } from "@retro/framework/audio-sink";
+import { DEFAULT_SAMPLE_RATE } from "../../worker/src/protocol.js";
 import { CAPS_SHIFT, KEY_MAP, SYMBOL_CHAR_MAP, SYMBOL_SHIFT } from "./input/keyMapping.js";
 import {
   DEFAULT_JOYSTICK_KEY_BINDINGS,
@@ -30,7 +29,6 @@ import {
   loadLastModel as loadLastModelFromStorage,
 } from "./ui/romStorage.js";
 import { EmulatorClient } from "./worker-client.js";
-import { arrayBufferToBase64, base64ToArrayBuffer } from "./utils/base64.js";
 import {
   addTape,
   removeTape,
@@ -175,9 +173,17 @@ const savedVolume = parseFloat(localStorage.getItem("zx_spectrum_volume") ?? "0.
 const savedMuted = localStorage.getItem("zx_spectrum_muted") === "true";
 const initialVolume = isNaN(savedVolume) ? 0.5 : Math.max(0, Math.min(1, savedVolume));
 
+const beeperProcessorUrl = `${import.meta.env.BASE_URL}beeper-processor.js`;
+
 const display = new Display(canvas);
 const client = new EmulatorClient();
-const audio = new AudioSink(initialVolume, savedMuted);
+const audio = new AudioSink(
+  beeperProcessorUrl,
+  "beeper-processor",
+  DEFAULT_SAMPLE_RATE,
+  initialVolume,
+  savedMuted,
+);
 
 function updateVolumeUi(): void {
   const isMuted = audio.isMuted();
@@ -1873,74 +1879,6 @@ client.onReady = () => {
 
 void restoreSession();
 
-const mcpInstanceId = Math.random().toString(36).slice(2, 8);
-
-const mcpIndicator = document.getElementById("mcp-indicator") as HTMLDivElement;
-const mcpIndicatorText = document.getElementById("mcp-indicator-text") as HTMLSpanElement;
-
-function setMcpConnected(connected: boolean): void {
-  mcpIndicator.classList.toggle("connected", connected);
-  mcpIndicatorText.textContent = `MCP: ${connected ? "connected" : "offline"} (${mcpInstanceId})`;
-}
-
-async function handleMcpCommand(message: McpBridgeCommand): Promise<unknown> {
-  switch (message.cmd) {
-    case "getStatus":
-      return { model: currentModel(), romLoaded, paused, tapePlaying };
-    case "readScreen":
-      return { pngBase64: canvas.toDataURL("image/png").split(",")[1] };
-    case "saveSnapshot": {
-      if (!romLoaded) throw new Error("saveSnapshot: no ROM loaded yet.");
-      const format = message.format ?? "sna";
-      const data = await client.saveSnapshot(format);
-      return { format, dataBase64: arrayBufferToBase64(data) };
-    }
-    case "loadRom":
-      client.loadRom(message.model, base64ToArrayBuffer(message.romBase64));
-      client.reset();
-      client.resume();
-      romLoaded = true;
-      return null;
-    case "loadSnapshot":
-      client.loadSnapshot(message.format, base64ToArrayBuffer(message.dataBase64));
-      return null;
-    case "loadTape":
-      client.loadTape(message.format, base64ToArrayBuffer(message.dataBase64));
-      return null;
-    case "playTape":
-      client.playTape();
-      return null;
-    case "stopTape":
-      client.stopTape();
-      return null;
-    case "loadDisk":
-      client.loadDisk(base64ToArrayBuffer(message.dataBase64));
-      return null;
-    case "ejectDisk":
-      client.ejectDisk();
-      return null;
-    case "setFastTapeLoad":
-      client.setFastTapeLoad(message.enabled);
-      if (fastTapeToggle) fastTapeToggle.checked = message.enabled;
-      return null;
-    case "reset":
-      client.reset();
-      return null;
-    case "keyEvent": {
-      const row = message.row;
-      const bit = message.bit;
-      if (row < 0 || row > 7 || bit < 0 || bit > 4) {
-        throw new Error(`Invalid keyEvent: row ${row} bit ${bit} (expected row 0-7, bit 0-4)`);
-      }
-      client.sendKey(row, bit, message.down);
-      return null;
-    }
-    case "typeText":
-      await typeText(message.text);
-      return null;
-  }
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1976,42 +1914,3 @@ async function typeText(text: string): Promise<void> {
     await sleep(180);
   }
 }
-
-let mcpReconnectDelay = 2000;
-const mcpReconnectMaxDelay = 30000;
-
-function connectMcpBridge(): void {
-  const ws = new WebSocket(`ws://localhost:${MCP_BRIDGE_PORT}`);
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "hello", instanceId: mcpInstanceId }));
-    setMcpConnected(true);
-    mcpReconnectDelay = 2000;
-  };
-  ws.onclose = () => {
-    setMcpConnected(false);
-    setTimeout(connectMcpBridge, mcpReconnectDelay);
-    mcpReconnectDelay = Math.min(mcpReconnectDelay * 2, mcpReconnectMaxDelay);
-  };
-  let mcpCommandTail: Promise<void> = Promise.resolve();
-  ws.onmessage = (event) => {
-    const message = JSON.parse(event.data as string) as McpBridgeCommand;
-    mcpCommandTail = mcpCommandTail
-      .then(() => handleMcpCommand(message))
-      .then(
-        (result) => {
-          ws.send(JSON.stringify({ reqId: message.reqId, ok: true, result }));
-        },
-        (err) => {
-          ws.send(
-            JSON.stringify({
-              reqId: message.reqId,
-              ok: false,
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          );
-        },
-      );
-  };
-}
-
-connectMcpBridge();

@@ -73,9 +73,7 @@ const CSP =
   "img-src 'self' data:; " +
   "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; " +
   "font-src https://fonts.gstatic.com; " +
-  // ws://localhost allows the per-repo MCP bridge toggles (Apple //e 8791,
-  // ZX Spectrum 8790) — the previous CSP silently blocked them in production.
-  "connect-src 'self' ws://localhost:8791 ws://localhost:8790; " +
+  "connect-src 'self'; " +
   "frame-ancestors 'self'; base-uri 'self'; form-action 'self'";
 
 const SECURITY_HEADERS = {

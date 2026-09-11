@@ -152,7 +152,6 @@ body {
   background: var(--apple-blue);
 }
 
-#mcp-indicator,
 #gamepad-indicator {
   display: inline-flex;
   align-items: center;
@@ -168,7 +167,6 @@ body {
   transition: all 0.2s ease;
 }
 
-#mcp-indicator .dot,
 #gamepad-indicator .dot {
   width: 6px;
   height: 6px;
@@ -177,14 +175,12 @@ body {
   transition: background-color 0.2s ease;
 }
 
-#mcp-indicator.connected,
 #gamepad-indicator.connected {
   border-color: rgba(92, 158, 98, 0.4);
   color: var(--text);
   background: var(--green-bg);
 }
 
-#mcp-indicator.connected .dot,
 #gamepad-indicator.connected .dot {
   background: var(--green);
   box-shadow: 0 0 6px var(--green);

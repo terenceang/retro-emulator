@@ -1,5 +1,5 @@
 import { AppleIIe, type CpuKind, loadState as applyState, parseDsk, saveState, writeDsk } from "@apple2/core";
-import { AudioRing, FrameRingWriter } from "./ring-buffers.js";
+import { AudioRing, FrameRingWriter } from "@retro/framework/ring-buffer";
 import {
   AUDIO_CAPACITY_FLOATS,
   FRAME_INTERVAL_MS,

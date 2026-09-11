@@ -50,5 +50,5 @@ export { TapeEdgePlayer } from "./loaders/tapePlayer.js";
 export { is128kOrAboveTape, detectTapeMachine } from "./loaders/tapeMetadata.js";
 export type { TapeMachineCompatibility } from "./loaders/tapeMetadata.js";
 
-export { MCP_BRIDGE_PORT, SNAPSHOT_EXTENSIONS, TAPE_EXTENSIONS, DISK_EXTENSIONS } from "./io/bridgeProtocol.js";
-export type { BridgeCommand, SnapshotFormat, TapeFormat, DiskFormat, MediaFormat } from "./io/bridgeProtocol.js";
+export { SNAPSHOT_EXTENSIONS, TAPE_EXTENSIONS, DISK_EXTENSIONS } from "./io/mediaFormats.js";
+export type { SnapshotFormat, TapeFormat, DiskFormat, MediaFormat } from "./io/mediaFormats.js";

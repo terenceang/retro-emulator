@@ -1,5 +1,5 @@
 import type { DiskFormat } from "@apple2/core";
-import { idbRequest, idbTx, openDb } from "../utils/idb.js";
+import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
 import { IDB_DATABASES } from "../utils/storageKeys.js";
 
 export interface DiskEntry {

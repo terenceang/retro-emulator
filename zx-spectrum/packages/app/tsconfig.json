@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": [],
@@ -8,5 +8,5 @@
     "noEmit": true
   },
   "include": ["src"],
-  "references": [{ "path": "../core" }, { "path": "../worker" }]
+  "references": [{ "path": "../core" }, { "path": "../worker" }, { "path": "../../../framework" }]
 }

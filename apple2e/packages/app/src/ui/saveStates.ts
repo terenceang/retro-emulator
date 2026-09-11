@@ -1,4 +1,4 @@
-import { idbRequest, idbTx, openDb } from "../utils/idb.js";
+import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
 import { IDB_DATABASES } from "../utils/storageKeys.js";
 
 const DB_NAME = IDB_DATABASES.saveStates;

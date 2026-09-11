@@ -1,13 +1,12 @@
 import {
-  MCP_BRIDGE_PORT,
   ROM_CHIP_SIZE,
   ROM_SIZE,
   ROM_SIZE_BASIC_MONITOR,
   ROM_SIZE_COMBINED_32K,
   diskFormatFromPath,
-  type BridgeCommand as McpBridgeCommand,
 } from "@apple2/core";
-import { AudioSink } from "./audio/audioSink.js";
+import { AudioSink } from "@retro/framework/audio-sink";
+import { DEFAULT_SAMPLE_RATE } from "../../worker/src/protocol.js";
 import { isInteractiveElement, keyEventToAscii } from "./input/keyMapping.js";
 import {
   DEFAULT_PADDLE_KEY_BINDINGS,
@@ -27,7 +26,6 @@ import { clearAllClientStorage } from "./utils/storageClear.js";
 import { LS_KEYS } from "./utils/storageKeys.js";
 import { downloadBlob } from "./utils/download.js";
 import { EmulatorClient } from "./worker-client.js";
-import { arrayBufferToBase64, base64ToArrayBuffer } from "./utils/base64.js";
 import {
   addDisk,
   getAllDisks,
@@ -160,9 +158,17 @@ const savedVolume = parseFloat(localStorage.getItem(LS_KEYS.volume) ?? "0.5");
 const savedMuted = localStorage.getItem(LS_KEYS.muted) === "true";
 const initialVolume = isNaN(savedVolume) ? 0.5 : Math.max(0, Math.min(1, savedVolume));
 
+const speakerProcessorUrl = `${import.meta.env.BASE_URL}speaker-processor.js`;
+
 const display = new Display(canvas);
 const client = new EmulatorClient();
-const audio = new AudioSink(initialVolume, savedMuted);
+const audio = new AudioSink(
+  speakerProcessorUrl,
+  "speaker-processor",
+  DEFAULT_SAMPLE_RATE,
+  initialVolume,
+  savedMuted,
+);
 
 function updateVolumeUi(): void {
   const isMuted = audio.isMuted();
@@ -1548,53 +1554,6 @@ client.onReady = () => {
 
 void restoreSession();
 
-// ---- MCP bridge ----
-
-const mcpInstanceId = Math.random().toString(36).slice(2, 8);
-const mcpIndicator = document.getElementById("mcp-indicator") as HTMLDivElement;
-const mcpIndicatorText = document.getElementById("mcp-indicator-text") as HTMLSpanElement;
-
-let mcpEnabled = localStorage.getItem(LS_KEYS.mcpEnabled) === "true";
-let mcpWs: WebSocket | null = null;
-let mcpReconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let mcpReconnectDelay = 2000;
-const mcpReconnectMaxDelay = 30000;
-let mcpCommandTail: Promise<void> = Promise.resolve();
-
-function setMcpConnected(connected: boolean): void {
-  mcpIndicator.classList.toggle("connected", connected);
-  mcpIndicatorText.textContent = `MCP: ${connected ? "connected" : mcpEnabled ? "offline" : "disabled"} (${mcpInstanceId})`;
-}
-
-function disconnectMcpBridge(): void {
-  if (mcpReconnectTimer !== null) {
-    clearTimeout(mcpReconnectTimer);
-    mcpReconnectTimer = null;
-  }
-  if (mcpWs) {
-    const ws = mcpWs;
-    mcpWs = null;
-    ws.onclose = null;
-    ws.close();
-  }
-  setMcpConnected(false);
-}
-
-function setMcpEnabled(enabled: boolean): void {
-  mcpEnabled = enabled;
-  localStorage.setItem(LS_KEYS.mcpEnabled, String(enabled));
-  if (enabled) {
-    connectMcpBridge();
-  } else {
-    disconnectMcpBridge();
-  }
-}
-
-mcpIndicator.style.cursor = "pointer";
-mcpIndicator.title = "Click to toggle MCP bridge";
-mcpIndicator.addEventListener("click", () => setMcpEnabled(!mcpEnabled));
-setMcpConnected(false);
-
 // ---- Server heartbeat ----
 
 const SERVER_HEARTBEAT_INTERVAL_MS = 5000;
@@ -1646,61 +1605,6 @@ serverModalRetryBtn.addEventListener("click", () => {
 
 void heartbeat();
 
-async function handleMcpCommand(message: McpBridgeCommand): Promise<unknown> {
-  switch (message.cmd) {
-    case "getStatus":
-      return { romLoaded, paused, diskLoaded: driveLoaded[0], diskLoaded2: driveLoaded[1] };
-    case "readScreen":
-      return { pngBase64: canvas.toDataURL("image/png").split(",")[1] };
-    case "saveSnapshot": {
-      if (!romLoaded) throw new Error("saveSnapshot: no ROM loaded yet.");
-      const data = await client.saveState();
-      return { dataBase64: arrayBufferToBase64(data) };
-    }
-    case "loadRom":
-      client.loadRom(base64ToArrayBuffer(message.romBase64));
-      client.reset();
-      romLoaded = true;
-      hasPoweredOn = true;
-      setPaused(false);
-      return null;
-    case "loadSnapshot":
-      hasPoweredOn = true;
-      client.loadState(base64ToArrayBuffer(message.dataBase64));
-      setPaused(false);
-      return null;
-    case "loadDisk": {
-      const data = base64ToArrayBuffer(message.dataBase64);
-      const drive = (message.drive ?? 1) - 1;
-      logEvent(`[MCP] Loading disk (${message.format}, ${data.byteLength} bytes) into drive ${drive + 1}.`, "debug");
-      client.loadDisk(message.format, data, drive);
-      markDriveLoaded(drive as 0 | 1, `disk.${message.format}`);
-      await saveSessionMedia(
-        { filename: `disk.${message.format}`, format: message.format, data: data.slice(0) },
-        drive,
-      );
-      return null;
-    }
-    case "ejectDisk": {
-      const drive = (message.drive ?? 1) - 1;
-      logEvent(`[MCP] Ejecting disk from drive ${drive + 1}.`, "debug");
-      client.ejectDisk(drive);
-      clearDriveUi(drive as 0 | 1);
-      await saveSessionMedia(null, drive);
-      return null;
-    }
-    case "reset":
-      client.reset();
-      return null;
-    case "keyEvent":
-      client.sendKey(message.ascii, message.down);
-      return null;
-    case "typeText":
-      await typeText(message.text);
-      return null;
-  }
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1723,39 +1627,3 @@ document.querySelectorAll<HTMLButtonElement>("button[data-macro]").forEach((btn)
     void typeText(`${macro}\n`);
   });
 });
-
-function connectMcpBridge(): void {
-  if (!mcpEnabled || mcpWs) return;
-  const ws = new WebSocket(`ws://localhost:${MCP_BRIDGE_PORT}`);
-  mcpWs = ws;
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: "hello", instanceId: mcpInstanceId }));
-    setMcpConnected(true);
-    mcpReconnectDelay = 2000;
-  };
-  ws.onclose = () => {
-    if (mcpWs === ws) mcpWs = null;
-    setMcpConnected(false);
-    if (mcpEnabled) {
-      mcpReconnectTimer = setTimeout(connectMcpBridge, mcpReconnectDelay);
-      mcpReconnectDelay = Math.min(mcpReconnectDelay * 2, mcpReconnectMaxDelay);
-    }
-  };
-  ws.onmessage = (event) => {
-    if (mcpWs !== ws) return;
-    const message = JSON.parse(event.data as string) as McpBridgeCommand;
-    mcpCommandTail = mcpCommandTail.then(() => handleMcpCommand(message)).then(
-      (result) => ws.send(JSON.stringify({ reqId: message.reqId, ok: true, result })),
-      (err) =>
-        ws.send(
-          JSON.stringify({
-            reqId: message.reqId,
-            ok: false,
-            error: err instanceof Error ? err.message : String(err),
-          }),
-        ),
-    );
-  };
-}
-
-connectMcpBridge();

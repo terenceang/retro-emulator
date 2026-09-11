@@ -14,7 +14,7 @@ import {
   writeSna,
   writeZ80,
 } from "@zx-spectrum/core";
-import { AudioRing, FrameRingWriter } from "./ring-buffers.js";
+import { AudioRing, FrameRingWriter } from "@retro/framework/ring-buffer";
 import {
   AUDIO_CAPACITY_FLOATS,
   DEFAULT_SAMPLE_RATE,

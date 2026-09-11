@@ -1,4 +1,4 @@
-import { idbRequest, idbTx, openDb } from "../utils/idb.js";
+import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
 
 export type TapeFormat = "tap" | "tzx";
 

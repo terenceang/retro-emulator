@@ -1,29 +1,17 @@
 import {
   AUDIO_CAPACITY_FLOATS,
-  AUDIO_HEADER_INT32_LENGTH,
   MAX_FRAME_HEIGHT,
   MAX_FRAME_WIDTH,
-  audioBufferByteLength,
-  frameBufferByteLength,
   type HostToWorkerMessage,
   type KempstonInput,
   type MachineModel,
   type WorkerToHostMessage,
 } from "../../worker/src/protocol.js";
-import { FrameRingReader } from "../../worker/src/ring-buffers.js";
+import { EmulatorClientBase, type Frame } from "@retro/framework/emulator-client";
 
-export type Frame = { pixels: Uint8Array; width: number; height: number };
+export type { Frame };
 
-export class EmulatorClient {
-  private readonly worker: Worker;
-  private readonly frameReader: FrameRingReader | null = null;
-  readonly usesSharedMemory: boolean;
-  readonly audioBuffer: SharedArrayBuffer | null = null;
-  readonly audioCapacitySamples = AUDIO_CAPACITY_FLOATS;
-
-  private latestFallbackFrame: Frame | null = null;
-  private latestFallbackAudio: Float32Array | null = null;
-  private fallbackFrameCount = 0;
+export class EmulatorClient extends EmulatorClientBase<HostToWorkerMessage, WorkerToHostMessage> {
   private readonly pendingSnapshotRequests: ((data: ArrayBuffer) => void)[] = [];
   private readonly pendingStateRequests: ((data: {
     slot: number;
@@ -31,67 +19,34 @@ export class EmulatorClient {
     model: MachineModel;
   }) => void)[] = [];
 
-  onReady?: () => void;
-  onError?: (message: string) => void;
   onTapeStatus?: (playing: boolean) => void;
   onDiskStatus?: (status: { inserted: boolean; motorOn: boolean; track: number }) => void;
 
   constructor() {
-    this.worker = new Worker(new URL("../../worker/src/emulator.worker.ts", import.meta.url), {
+    const worker = new Worker(new URL("../../worker/src/emulator.worker.ts", import.meta.url), {
       type: "module",
     });
-
-    this.worker.onerror = (e) => {
-      this.onError?.(e.message || "Worker error");
-    };
-
-    this.usesSharedMemory = typeof SharedArrayBuffer !== "undefined";
-    let frameBuffer: SharedArrayBuffer | null = null;
-    let audioBuffer: SharedArrayBuffer | null = null;
-
-    if (this.usesSharedMemory) {
-      frameBuffer = new SharedArrayBuffer(frameBufferByteLength(MAX_FRAME_WIDTH, MAX_FRAME_HEIGHT));
-      audioBuffer = new SharedArrayBuffer(audioBufferByteLength(AUDIO_CAPACITY_FLOATS));
-      this.frameReader = new FrameRingReader(frameBuffer, MAX_FRAME_WIDTH, MAX_FRAME_HEIGHT);
-      this.audioBuffer = audioBuffer;
-    }
-
-    this.worker.onmessage = (event: MessageEvent<WorkerToHostMessage>) => {
-      const message = event.data;
-      if (message.type === "ready") this.onReady?.();
-      else if (message.type === "error") this.onError?.(message.message);
-      else if (message.type === "tapeStatus") this.onTapeStatus?.(message.playing);
-      else if (message.type === "diskStatus") {
-        this.onDiskStatus?.({
-          inserted: message.inserted,
-          motorOn: message.motorOn,
-          track: message.track,
-        });
-      } else if (message.type === "frame") {
-        this.fallbackFrameCount++;
-        this.latestFallbackFrame = {
-          pixels: new Uint8Array(message.pixels),
-          width: message.width,
-          height: message.height,
-        };
-        this.latestFallbackAudio = new Float32Array(message.audio);
-      } else if (message.type === "snapshotData") {
-        this.pendingSnapshotRequests.shift()?.(message.data);
-      } else if (message.type === "stateData") {
-        this.pendingStateRequests.shift()?.({
-          slot: message.slot,
-          data: message.data,
-          model: message.model,
-        });
-      }
-    };
-
-    this.send({ type: "init", frameBuffer, audioBuffer });
+    super(worker, MAX_FRAME_WIDTH, MAX_FRAME_HEIGHT, AUDIO_CAPACITY_FLOATS);
   }
 
-  private send(message: HostToWorkerMessage, transfer?: Transferable[]): void {
-    if (transfer) this.worker.postMessage(message, transfer);
-    else this.worker.postMessage(message);
+  protected handleMessage(message: WorkerToHostMessage): void {
+    if (message.type === "tapeStatus") {
+      this.onTapeStatus?.(message.playing);
+    } else if (message.type === "diskStatus") {
+      this.onDiskStatus?.({
+        inserted: message.inserted,
+        motorOn: message.motorOn,
+        track: message.track,
+      });
+    } else if (message.type === "snapshotData") {
+      this.pendingSnapshotRequests.shift()?.(message.data);
+    } else if (message.type === "stateData") {
+      this.pendingStateRequests.shift()?.({
+        slot: message.slot,
+        data: message.data,
+        model: message.model,
+      });
+    }
   }
 
   loadRom(model: MachineModel, rom: ArrayBuffer): void {
@@ -187,26 +142,4 @@ export class EmulatorClient {
       this.send({ type: "exportState", data, model, targetFormat, inputFormat }, [data]);
     });
   }
-
-  pollFrame(): Frame | null {
-    if (this.frameReader) return this.frameReader.read();
-    const f = this.latestFallbackFrame;
-    this.latestFallbackFrame = null;
-    return f;
-  }
-
-  getFrameCount(): number {
-    if (this.frameReader) {
-      return Math.floor(this.frameReader.getSequence() / 2);
-    }
-    return this.fallbackFrameCount;
-  }
-
-  takeFallbackAudio(): Float32Array | null {
-    const a = this.latestFallbackAudio;
-    this.latestFallbackAudio = null;
-    return a;
-  }
 }
-
-export { AUDIO_HEADER_INT32_LENGTH };

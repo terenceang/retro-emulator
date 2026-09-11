@@ -3,7 +3,6 @@
   "references": [
     { "path": "packages/core" },
     { "path": "packages/worker" },
-    { "path": "packages/app" },
-    { "path": "packages/mcp-server" }
+    { "path": "packages/app" }
   ]
 }

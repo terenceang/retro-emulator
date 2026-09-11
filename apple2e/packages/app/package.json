@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@apple2/core": "*",
-    "@apple2/worker": "*"
+    "@apple2/worker": "*",
+    "@retro/framework": "*"
   }
 }

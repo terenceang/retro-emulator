@@ -5,27 +5,14 @@
   "type": "module",
   "author": "Terence Ang (motionfxdesign)",
   "license": "MIT",
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "npm run build --workspace=@apple2/mcp-server && node packages/mcp-server/dist/index.js & npm run dev --workspace=@apple2/app",
-    "build": "npm run build --workspace=@apple2/core && npm run build --workspace=@apple2/worker && npm run build --workspace=@apple2/app && npm run build --workspace=@apple2/mcp-server",
-    "serve": "npm run build && npm run preview --workspace=@apple2/app",
+    "dev": "npm --prefix packages/app run dev",
+    "build": "npm --prefix packages/core run build && npm --prefix packages/worker run build && npm --prefix packages/app run build",
+    "serve": "npm run build && npm --prefix packages/app run preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:all": "npm run typecheck && npm run lint && vitest run",
     "typecheck": "tsc -b",
     "lint": "eslint ."
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.17.0",
-    "@types/node": "^22.10.5",
-    "eslint": "^9.17.0",
-    "prettier": "^3.4.2",
-    "typescript": "^5.7.2",
-    "typescript-eslint": "^8.19.0",
-    "vite": "^6.0.7",
-    "vitest": "^2.1.8"
   }
 }

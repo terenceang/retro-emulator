@@ -50,17 +50,10 @@ export type WorkerToHostMessage =
 
 export const AUDIO_CAPACITY_SAMPLES = DEFAULT_SAMPLE_RATE;
 export const AUDIO_CAPACITY_FLOATS = AUDIO_CAPACITY_SAMPLES * AUDIO_CHANNELS;
-export const FRAME_HEADER_INT32_LENGTH = 3;
 
-export function frameBufferByteLength(
-  maxWidth = MAX_FRAME_WIDTH,
-  maxHeight = MAX_FRAME_HEIGHT,
-): number {
-  return FRAME_HEADER_INT32_LENGTH * 4 + maxWidth * maxHeight;
-}
-
-export const AUDIO_HEADER_INT32_LENGTH = 3;
-
-export function audioBufferByteLength(capacityFloats = AUDIO_CAPACITY_FLOATS): number {
-  return AUDIO_HEADER_INT32_LENGTH * 4 + capacityFloats * 4;
-}
+export {
+  AUDIO_HEADER_INT32_LENGTH,
+  FRAME_HEADER_INT32_LENGTH,
+  audioBufferByteLength,
+  frameBufferByteLength,
+} from "@retro/framework/ring-buffer";

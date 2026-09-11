@@ -9,7 +9,6 @@ export const LS_KEYS = {
   paddleType: "apple2_paddle_type",
   paddleBindings: "apple2_paddle_bindings",
   capsLock: "apple2_caps_lock",
-  mcpEnabled: "apple2_mcp_enabled",
 } as const;
 
 export const IDB_DATABASES = {

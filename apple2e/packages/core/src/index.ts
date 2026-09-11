@@ -14,7 +14,6 @@ export {
 export { Keyboard } from "./io/keyboard.js";
 export { SPECIAL_KEY_CODES } from "./io/keyboardCodes.js";
 export { Paddle } from "./io/paddle.js";
-export * from "./io/bridgeProtocol.js";
 
 export { Speaker } from "./audio/speaker.js";
 

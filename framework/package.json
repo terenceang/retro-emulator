@@ -1,0 +1,36 @@
+{
+  "name": "@retro/framework",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "exports": {
+    "./base64": {
+      "types": "./src/base64.ts",
+      "default": "./src/base64.ts"
+    },
+    "./idb": {
+      "types": "./src/idb.ts",
+      "default": "./src/idb.ts"
+    },
+    "./ring-buffer": {
+      "types": "./src/ring-buffer.ts",
+      "default": "./src/ring-buffer.ts"
+    },
+    "./emulator-client": {
+      "types": "./src/emulator-client.ts",
+      "default": "./src/emulator-client.ts"
+    },
+    "./audio-sink": {
+      "types": "./src/audio-sink.ts",
+      "default": "./src/audio-sink.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:all": "npm run typecheck && npm run lint && vitest run",
+    "typecheck": "tsc -b",
+    "lint": "eslint ."
+  }
+}

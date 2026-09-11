@@ -7,8 +7,13 @@ together.
 
 ## Getting started
 
+This module is part of a root npm workspace (the `retro-emulator` repo root, one level up) —
+install from there, then run this module's own scripts from here:
+
 ```sh
+cd ..
 npm install
+cd zx-spectrum
 npm run dev       # Vite dev server at http://localhost:5173
 ```
 
@@ -33,7 +38,7 @@ Everything else lives in two collapsible side panels opened via the edge tabs:
     tape signal — cycle-accurate and real-time, with `LOAD ""` typed by hand, exactly like real
     hardware.
   - **Snapshots**: 5-slot memory manager with instant thumbnail screenshot preview, timestamp display, slot state deletion, direct `.z80`/`.sna` loading into any slot, and slot export to `.z80` or `.sna` with on-the-fly format translation.
-- **Right panel** — holds machine controls (model selector: 48K / 128K / +3, ROM file loader & setup dialog), floppy disk drive A: controls (track indicator, activity LED, insert/eject `.dsk` images when in +3 mode), audio options (mute, volume, and AY stereo mode: ACB authentic +3, ABC Melodik, or Mono for 128K/+3; 48K beeper is pure mono), keyboard options, joystick emulation (Kempston/Sinclair 1/Sinclair 2/Cursor/QAOP with remappable keys and HID gamepad support — see below), MCP bridge status, live diagnostics (FPS), and activity log with a Save Log export button.
+- **Right panel** — holds machine controls (model selector: 48K / 128K / +3, ROM file loader & setup dialog), floppy disk drive A: controls (track indicator, activity LED, insert/eject `.dsk` images when in +3 mode), audio options (mute, volume, and AY stereo mode: ACB authentic +3, ABC Melodik, or Mono for 128K/+3; 48K beeper is pure mono), keyboard options, joystick emulation (Kempston/Sinclair 1/Sinclair 2/Cursor/QAOP with remappable keys and HID gamepad support — see below), live diagnostics (FPS), and activity log with a Save Log export button.
 
 ### ROMs
 
@@ -84,7 +89,6 @@ npm run lint                 # ESLint checks
 | **Machine Integration**                                                                               | **12 / 12** (100%) | Machine48k, Machine128k, and MachinePlus3 boot sequences, real +3 ROM resets, I/O port dispatching, and loading-tone audio being silenced while fast tape load is active regardless of the Loading-tones toggle.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **Disk Subsystem**                                                                                    |  **5 / 5** (100%)  | Standard & Extended CPC `.dsk` image parser/writer and µPD765 FDC floppy drive controller state machine.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **Snapshot Loaders & Serializers**                                                                    | **16 / 16** (100%) | `.sna` and `.z80` (v1, v2, v3) parsing, decompression, bank allocation, and serialization — including the `writeZ80`/`applySnapshot` dispatchers that pick the right format per machine model (48K vs. 128K/+3).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **MCP Headless Server**                                                                               |  **1 / 1** (100%)  | PNG screenshot generator with CRC32 calculation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## Production build
 
@@ -98,20 +102,6 @@ Deploying behind nginx/Caddy? See the **Deployment** section of
 fast frame/audio transport) requires two response headers
 (`Cross-Origin-Opener-Policy`/`Cross-Origin-Embedder-Policy`) the web server must
 send; without them the app still works, just slower.
-
-## MCP server
-
-`packages/mcp-server` exposes the emulator as MCP tools:
-
-- `load_rom`: load 48K, 128K, or +3 ROM images (single or multi-file)
-- `load_snapshot`: load `.sna` or `.z80` (v1/v2/v3) snapshots
-- `save_snapshot`: save running emulator state as `.sna` or `.z80` snapshot
-- `load_tape` / `play_tape` / `stop_tape`: cassette playback with optional ROM fast-load
-- `insert_disk` / `eject_disk`: insert/eject `.dsk` (Standard and Extended CPC) disk images
-- `press_key` / `get_status` / `run_frames`: headless input and execution
-- `read_screen`: screenshot capture as PNG with hand-rolled CRC32
-
-Point an MCP client at `node packages/mcp-server/dist/index.js`.
 
 ## Legal
 

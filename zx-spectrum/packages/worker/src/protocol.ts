@@ -63,17 +63,9 @@ export const FRAME_INTERVAL_MS = 1000 / SPECTRUM_FPS;
 export const SAMPLES_PER_FRAME = Math.round(DEFAULT_SAMPLE_RATE / SPECTRUM_FPS);
 export const STEREO_SAMPLES_PER_FRAME = SAMPLES_PER_FRAME * AUDIO_CHANNELS;
 
-export const FRAME_HEADER_INT32_LENGTH = 3;
-
-export function frameBufferByteLength(
-  maxWidth = MAX_FRAME_WIDTH,
-  maxHeight = MAX_FRAME_HEIGHT,
-): number {
-  return FRAME_HEADER_INT32_LENGTH * 4 + maxWidth * maxHeight;
-}
-
-export const AUDIO_HEADER_INT32_LENGTH = 3;
-
-export function audioBufferByteLength(capacityFloats = AUDIO_CAPACITY_FLOATS): number {
-  return AUDIO_HEADER_INT32_LENGTH * 4 + capacityFloats * 4;
-}
+export {
+  AUDIO_HEADER_INT32_LENGTH,
+  FRAME_HEADER_INT32_LENGTH,
+  audioBufferByteLength,
+  frameBufferByteLength,
+} from "@retro/framework/ring-buffer";
