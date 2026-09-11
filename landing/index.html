@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMU:// — Browser Retro Emulators</title>
+  <meta name="description" content="Retro computer emulators running live in the browser. Click a machine to boot it — ZX Spectrum, Apple II and more, ported to WebAssembly.">
+  <link rel="canonical" href="https://emu.terenceang.com/">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="theme-color" content="#1a1714">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="logo" aria-label="Home">TA<span class="logo-sep">://</span><span class="logo-suffix">EMULATORS</span></a>
+      <div class="links" role="navigation" aria-label="Main navigation">
+        <a href="/zx-spectrum/" class="nav-link">ZX SPECTRUM</a>
+        <a href="/apple2e/" class="nav-link">APPLE II</a>
+      </div>
+      <button class="hamburger" id="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+    </div>
+    <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+      <a href="/zx-spectrum/" class="mobile-link">ZX SPECTRUM</a>
+      <a href="/apple2e/" class="mobile-link">APPLE II</a>
+      <a href="#machines" class="mobile-link">ALL MACHINES</a>
+    </div>
+  </nav>
+
+  <main id="main-content">
+    <section class="hero">
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="hero-container">
+        <div class="hero-inner">
+          <p class="hero-pre reveal" style="--i: 0;">
+            <span class="pre-dot" aria-hidden="true">●</span>
+            RETRO COMPUTING · IN THE BROWSER
+          </p>
+          <h1 class="hero-title scanlines reveal" style="--i: 1;">
+            Boot the classics,<br>
+            no floppy required<span class="cursor-blink" aria-hidden="true">█</span>
+          </h1>
+          <p class="hero-desc reveal" style="--i: 2;">
+            A growing lab of vintage machine emulators running live on the web.
+            Click a machine, it loads in seconds — no installs, no setup, no soldering.
+            Just pick an icon and press play.
+          </p>
+          <div class="hero-cta reveal" style="--i: 3;">
+            <a href="#machines" class="btn-primary">SEE THE MACHINES</a>
+            <a href="/zx-spectrum/" class="btn-secondary">START WITH ZX SPECTRUM</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="machines">
+      <div class="container">
+        <div class="section-header reveal" style="--i: 0;">
+          <h2 class="section-title">MACHINE ROOM</h2>
+          <a href="/apple2e/" class="section-link">Jump straight to a machine →</a>
+        </div>
+        <div class="machines-grid">
+          <a href="/zx-spectrum/" class="machine-card reveal" style="--i: 1;">
+            <div class="card-media">
+              <img src="/assets/img/zx-spectrum.jpg" alt="Sinclair ZX Spectrum 48K computer" width="960" height="640" loading="lazy">
+            </div>
+            <div class="tags">
+              <span class="tag-badge family">◈ SINCLAIR</span>
+              <span class="tag-badge year">1982</span>
+            </div>
+            <div class="status"><span class="dot on" aria-hidden="true">●</span>READY TO BOOT</div>
+            <h3 class="card-title">ZX Spectrum</h3>
+            <p class="summary">
+              The 1982 British classic that taught a generation to code.
+              48K of RAM, rubber keys, and that unmistakable rainbow stripe.
+              Hosted under <span style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--text)">/zx-spectrum</span>.
+            </p>
+            <div class="card-footer">
+              <div class="meta">
+                <span>EMU://ZX-SPECTRUM</span>
+                <span class="sep">·</span>
+                <span>Z80 · 3.5 MHz</span>
+                <span class="sep">·</span>
+                <span>48K</span>
+              </div>
+            </div>
+          </a>
+
+          <a href="/apple2e/" class="machine-card reveal" style="--i: 2;">
+            <div class="card-media">
+              <img src="/assets/img/apple2e.jpg" alt="Apple II computer from 1977" width="960" height="640" loading="lazy">
+            </div>
+            <div class="tags">
+              <span class="tag-badge family">◈ APPLE</span>
+              <span class="tag-badge year">1977</span>
+            </div>
+            <div class="status"><span class="dot on" aria-hidden="true">●</span>READY TO BOOT</div>
+            <h3 class="card-title">Apple II</h3>
+            <p class="summary">
+              Woz's vision of a computer for the rest of us. The machine that
+              started the home computing revolution, one open motherboard at a time.
+              Hosted under <span style="font-family:'JetBrains Mono',monospace;font-size:.8rem;color:var(--text)">/apple2e</span>.
+            </p>
+            <div class="card-footer">
+              <div class="meta">
+                <span>EMU://APPLEII</span>
+                <span class="sep">·</span>
+                <span>6502 · 1 MHz</span>
+                <span class="sep">·</span>
+                <span>4–48K</span>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="bottom-cta">
+      <div class="container">
+        <div class="cta-inner reveal" style="--i: 0;">
+          <p class="cta-text">
+            Want a particular machine on this shelf?<br>
+            It's probably already on the workbench.
+          </p>
+          <span class="btn-primary btn-disabled" aria-disabled="true">MORE MACHINES SOON</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div class="identity">
+          <a href="/" class="footer-logo">EMU://</a>
+          <p class="tagline">Retro emulators, running in the browser</p>
+          <p class="location">Vintage machines · WebAssembly · No install required</p>
+          <p class="credits">
+            Machine photos via Wikimedia Commons —
+            <a href="https://commons.wikimedia.org/wiki/File:Sinclair_ZX_Spectrum_48k_(7160143184).jpg" target="_blank" rel="noopener noreferrer">ZX Spectrum</a>
+            by Nico Kaiser (CC BY 2.0) ·
+            <a href="https://commons.wikimedia.org/wiki/File:Apple_II,_1977,_Computer_History_Museum.jpg" target="_blank" rel="noopener noreferrer">Apple II</a>
+            by The wub (CC BY-SA 4.0).
+          </p>
+        </div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <div class="nav-col">
+            <span class="col-label">MACHINES</span>
+            <a href="/zx-spectrum/" class="footer-link">ZX Spectrum</a>
+            <a href="/apple2e/" class="footer-link">Apple II</a>
+          </div>
+          <div class="nav-col">
+            <span class="col-label">INFO</span>
+            <span class="footer-link">Served over Cloudflare Tunnel</span>
+            <span class="footer-link">Static · no cookies</span>
+            <span class="footer-link">Keyboard-driven</span>
+          </div>
+          <div class="nav-col">
+            <span class="col-label">META</span>
+            <a href="#machines" class="footer-link">Machine Room</a>
+            <a href="/" class="footer-link">Home</a>
+            <span id="visitor-count" class="footer-link counter" title="Page views since tracking began">◉ <span id="visitor-count-value">…</span></span>
+            <span class="footer-link disabled" aria-disabled="true">Search · SOON</span>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <div class="bottom-left">
+          <span class="copy">© 2026 EMU:// All rights reserved.</span>
+          <span class="sep">·</span>
+          <span class="built">emu.terenceang.com</span>
+        </div>
+        <div class="bottom-right">
+          <span class="version" title="Holding page">v0.1.0</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/assets/nav.js" defer></script>
+</body>
+</html>
