@@ -14,7 +14,6 @@ Repo for emu.terenceang.com: site server, ops/deploy files, and both emulator co
 | `public/` | Served root (`EMU_SITE_ROOT`) — symlinks only, into `landing/` and the two dist builds |
 | `apple2e/` | Apple //e emulator monorepo |
 | `zx-spectrum/` | ZX Spectrum emulator monorepo |
-| `archive/` | Retired/one-time files kept for historical reference only (not part of the active deploy) — see `archive/README.md` |
 
 ## Site server
 
@@ -69,15 +68,13 @@ sudo cp deploy/emu-site.service /etc/systemd/system/
 sudo systemctl daemon-reload && sudo systemctl restart emu-site
 ```
 
-(The one-time install/cutover script that originally set this up is archived at
-`archive/cutover.sh` — routine changes just use the two lines above.)
+(The one-time install/cutover script that originally set this up, plus retired files
+from later refactors — old nginx config, `emu-counter.service` — were kept in `archive/`
+for a while; both are gone now but still recoverable via git history if ever needed.)
 
 ## History
 
-Pre-merge repos are archived in `~/backup-repos/` (with their `.git` dirs):
-`apple-ii`, `zx-spectrum`, `emu-site`, `emu-deploy`, plus the retired `emu-counter`.
-All four git histories were merged here with `git subtree` — `git log --follow` works across the merge.
-
-Retired/superseded files from later refactors (old nginx config, `emu-counter.service`,
-the one-time cutover script) are kept in `archive/` for now — see `archive/README.md`.
-They'll be deleted once the flat layout has proven itself in production.
+The pre-merge repos (`apple-ii`, `zx-spectrum`, `emu-site`, `emu-deploy`, plus the retired
+`emu-counter`) were merged into this repo with `git subtree` — `git log --follow` works
+across the merge. Their standalone copies, once kept in `~/backup-repos/`, have since been
+deleted; the merged history here is the only copy now.
