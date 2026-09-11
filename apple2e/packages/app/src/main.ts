@@ -6,8 +6,15 @@ import {
   diskFormatFromPath,
 } from "@apple2/core";
 import { AudioSink } from "@retro/framework/audio-sink";
+import { downloadBlob } from "@retro/framework/download";
+import { isInteractiveElement } from "@retro/framework/dom";
+import { createLogger } from "@retro/framework/log";
+import { createPauseUi } from "@retro/framework/pause-ui";
+import { createFullscreenUi } from "@retro/framework/fullscreen-ui";
+import { escapeHtml, stripExtension } from "@retro/framework/text";
+import { sleep } from "@retro/framework/timing";
 import { DEFAULT_SAMPLE_RATE } from "../../worker/src/protocol.js";
-import { isInteractiveElement, keyEventToAscii } from "./input/keyMapping.js";
+import { keyEventToAscii } from "./input/keyMapping.js";
 import {
   DEFAULT_PADDLE_KEY_BINDINGS,
   PADDLE_DIRECTIONS,
@@ -24,7 +31,6 @@ import { loadSessionMedia, saveSessionMedia, type StoredMedia } from "./ui/sessi
 import { loadRom as loadRomFromStorage, saveRom as saveRomToStorage } from "./ui/romStorage.js";
 import { clearAllClientStorage } from "./utils/storageClear.js";
 import { LS_KEYS } from "./utils/storageKeys.js";
-import { downloadBlob } from "./utils/download.js";
 import { EmulatorClient } from "./worker-client.js";
 import {
   addDisk,
@@ -255,79 +261,8 @@ function setRightTab(tab: RightTab): void {
   controlsSystemToggle?.classList.toggle("active", controlsOpen && tab === "system");
 }
 
-interface LogEntry {
-  timestamp: string;
-  message: string;
-  level: "debug" | "info" | "warn" | "error";
-}
-
-const logEntries: LogEntry[] = [];
-
-function updateLogButtons(): void {
-  const hasEntries = logEntries.length > 0;
-  if (saveLogBtn) saveLogBtn.disabled = !hasEntries;
-  if (clearLogBtn) clearLogBtn.disabled = !hasEntries;
-}
-
-function appendLogEntryUi(entry: LogEntry): void {
-  if (!logEntriesEl) return;
-  const empty = logEntriesEl.querySelector(".log-entry-empty");
-  if (empty) empty.remove();
-
-  const row = document.createElement("div");
-  row.className = `log-entry log-${entry.level}`;
-  const timeSpan = document.createElement("span");
-  timeSpan.className = "log-entry-time";
-  timeSpan.textContent = `[${entry.timestamp}]`;
-  const msgSpan = document.createElement("span");
-  msgSpan.className = "log-entry-msg";
-  msgSpan.textContent = entry.message;
-  row.appendChild(timeSpan);
-  row.appendChild(msgSpan);
-  logEntriesEl.appendChild(row);
-
-  while (logEntriesEl.children.length > 200) logEntriesEl.removeChild(logEntriesEl.firstChild!);
-  if (logContainer) logContainer.scrollTop = logContainer.scrollHeight;
-  updateLogButtons();
-}
-
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function renderLogs(): void {
-  if (!logEntriesEl) return;
-  logEntriesEl.innerHTML = "";
-  if (logEntries.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "log-entry-empty";
-    empty.textContent = "No log entries yet.";
-    logEntriesEl.appendChild(empty);
-    updateLogButtons();
-    return;
-  }
-  for (const entry of logEntries) appendLogEntryUi(entry);
-}
-
-function logEvent(message: string, level: "debug" | "info" | "warn" | "error" = "info"): void {
-  const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  const entry: LogEntry = { timestamp: timeStr, message, level };
-  logEntries.push(entry);
-  if (logEntries.length > 500) logEntries.shift();
-  appendLogEntryUi(entry);
-}
-
-function setStatus(message: string, level: "info" | "warn" | "error" = "info"): void {
-  status.textContent = message;
-  logEvent(message, level);
-}
+const logger = createLogger({ statusEl: status, logEntriesEl, logContainer, saveLogBtn, clearLogBtn });
+const { entries: logEntries, logEvent, setStatus, renderLogs } = logger;
 
 renderLogs();
 
@@ -337,43 +272,16 @@ let lastFpsUpdate = performance.now();
 let lastFpsFrameCount = 0;
 let currentFps = 0;
 
-function updateFpsUi(): void {
-  if (!fpsVal) return;
-  if (!romLoaded) {
-    fpsVal.textContent = "--";
-    return;
-  }
-  fpsVal.textContent = paused ? "Paused" : currentFps.toFixed(1);
-}
+const pauseUi = createPauseUi({
+  pauseBtn,
+  fpsVal,
+  isPaused: () => paused,
+  isRomLoaded: () => romLoaded,
+  getFps: () => currentFps,
+});
+const { updatePauseUi, updateFpsUi } = pauseUi;
 
-function updatePauseUi(): void {
-  const pauseIcon = pauseBtn.querySelector(".icon-pause") as SVGElement | null;
-  const playIcon = pauseBtn.querySelector(".icon-play") as SVGElement | null;
-  const label = document.getElementById("pause-btn-label");
-  if (paused) {
-    if (pauseIcon) pauseIcon.style.display = "none";
-    if (playIcon) playIcon.style.display = "block";
-    if (label) label.textContent = "Resume";
-    pauseBtn.classList.add("btn-accent");
-  } else {
-    if (pauseIcon) pauseIcon.style.display = "block";
-    if (playIcon) playIcon.style.display = "none";
-    if (label) label.textContent = "Pause";
-    pauseBtn.classList.remove("btn-accent");
-  }
-  updateFpsUi();
-}
-
-function updateFullscreenUi(): void {
-  if (!fullscreenBtn) return;
-  const enterIcon = fullscreenBtn.querySelector(".icon-fullscreen-enter") as SVGElement | null;
-  const exitIcon = fullscreenBtn.querySelector(".icon-fullscreen-exit") as SVGElement | null;
-  const label = document.getElementById("fullscreen-btn-label");
-  const isFullscreen = document.fullscreenElement === screenFrame;
-  if (enterIcon) enterIcon.style.display = isFullscreen ? "none" : "block";
-  if (exitIcon) exitIcon.style.display = isFullscreen ? "block" : "none";
-  if (label) label.textContent = isFullscreen ? "Exit" : "Fullscreen";
-}
+const { updateFullscreenUi } = createFullscreenUi({ fullscreenBtn, screenFrame });
 
 async function ensureAudioStarted(): Promise<void> {
   await audio.start(client);
@@ -876,11 +784,6 @@ function initControlsState(): void {
   controlsPanel.classList.toggle("open", controlsOpen);
   document.body.classList.toggle("controls-open", controlsOpen);
   setRightTab(activeRightTab);
-}
-
-function stripExtension(filename: string): string {
-  const dot = filename.lastIndexOf(".");
-  return dot > 0 ? filename.slice(0, dot) : filename;
 }
 
 async function onLibraryFileSelect(files: FileList | null): Promise<void> {
@@ -1604,10 +1507,6 @@ serverModalRetryBtn.addEventListener("click", () => {
 });
 
 void heartbeat();
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function typeText(text: string): Promise<void> {
   for (const ch of text) {

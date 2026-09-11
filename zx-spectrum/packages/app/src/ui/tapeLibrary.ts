@@ -1,4 +1,5 @@
 import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
+import { IDB_DATABASES } from "../utils/storageKeys.js";
 
 export type TapeFormat = "tap" | "tzx";
 
@@ -12,7 +13,7 @@ export interface TapeEntry {
   addedAt: number;
 }
 
-const DB_NAME = "zx-spectrum-tapes";
+const DB_NAME = IDB_DATABASES.tapes;
 const STORE_NAME = "tapes";
 
 function openTapesDb(): Promise<IDBDatabase> {

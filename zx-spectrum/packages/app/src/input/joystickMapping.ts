@@ -1,4 +1,5 @@
 import type { KempstonInput } from "../../../worker/src/protocol.js";
+import { LS_KEYS } from "../utils/storageKeys.js";
 import type { MatrixKey } from "./keyMapping.js";
 
 export type JoystickType = "none" | "kempston" | "sinclair1" | "sinclair2" | "cursor" | "qaop";
@@ -57,8 +58,8 @@ export const DEFAULT_JOYSTICK_KEY_BINDINGS: Record<JoystickDirection, string> = 
   fire: "Space",
 };
 
-const TYPE_STORAGE_KEY = "zx_spectrum_joystick_type";
-const BINDINGS_STORAGE_KEY = "zx_spectrum_joystick_bindings";
+const TYPE_STORAGE_KEY = LS_KEYS.joystickType;
+const BINDINGS_STORAGE_KEY = LS_KEYS.joystickBindings;
 
 export function loadJoystickType(): JoystickType {
   const stored = localStorage.getItem(TYPE_STORAGE_KEY);

@@ -1,10 +1,11 @@
 import type { MachineModel } from "@zx-spectrum/core";
 import { arrayBufferToBase64, base64ToArrayBuffer } from "@retro/framework/base64";
+import { LS_KEYS } from "../utils/storageKeys.js";
 
-const ROM_KEY_48K = "zx_spectrum_rom_48k";
-const ROM_KEY_128K = "zx_spectrum_rom_128k";
-const ROM_KEY_PLUS3 = "zx_spectrum_rom_plus3";
-const LAST_MODEL_KEY = "zx_spectrum_last_model";
+const ROM_KEY_48K = LS_KEYS.romKey48k;
+const ROM_KEY_128K = LS_KEYS.romKey128k;
+const ROM_KEY_PLUS3 = LS_KEYS.romKeyPlus3;
+const LAST_MODEL_KEY = LS_KEYS.lastModel;
 
 function romKey(model: MachineModel): string {
   if (model === "48k") return ROM_KEY_48K;

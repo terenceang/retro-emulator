@@ -23,6 +23,34 @@
     "./audio-sink": {
       "types": "./src/audio-sink.ts",
       "default": "./src/audio-sink.ts"
+    },
+    "./dom": {
+      "types": "./src/dom.ts",
+      "default": "./src/dom.ts"
+    },
+    "./download": {
+      "types": "./src/download.ts",
+      "default": "./src/download.ts"
+    },
+    "./text": {
+      "types": "./src/text.ts",
+      "default": "./src/text.ts"
+    },
+    "./timing": {
+      "types": "./src/timing.ts",
+      "default": "./src/timing.ts"
+    },
+    "./log": {
+      "types": "./src/log.ts",
+      "default": "./src/log.ts"
+    },
+    "./pause-ui": {
+      "types": "./src/pause-ui.ts",
+      "default": "./src/pause-ui.ts"
+    },
+    "./fullscreen-ui": {
+      "types": "./src/fullscreen-ui.ts",
+      "default": "./src/fullscreen-ui.ts"
     }
   },
   "scripts": {

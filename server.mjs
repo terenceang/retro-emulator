@@ -23,6 +23,7 @@ import { stat, readFile, writeFile, rename, access } from "node:fs/promises";
 import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath } from "node:url";
+import { COOP_COEP_HEADERS } from "./coop-coep.mjs";
 
 const SITE_DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -84,10 +85,7 @@ const SECURITY_HEADERS = {
   "content-security-policy": CSP,
 };
 
-const COOP_COEP = {
-  "cross-origin-opener-policy": "same-origin",
-  "cross-origin-embedder-policy": "require-corp",
-};
+const COOP_COEP = COOP_COEP_HEADERS;
 
 const ISOLATED_PREFIXES = ["/apple2e", "/zx-spectrum"];
 const HASHED_ASSET_MARKER = "/assets/";

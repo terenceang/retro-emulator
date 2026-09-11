@@ -1,5 +1,6 @@
 import type { MediaFormat } from "@zx-spectrum/core";
 import { idbRequest, idbTx, openDb } from "@retro/framework/idb";
+import { IDB_DATABASES } from "../utils/storageKeys.js";
 
 export interface StoredMedia {
   filename: string;
@@ -7,7 +8,7 @@ export interface StoredMedia {
   data: ArrayBuffer;
 }
 
-const DB_NAME = "zx-spectrum-session";
+const DB_NAME = IDB_DATABASES.session;
 const STORE_NAME = "session";
 
 export async function saveSessionMedia(media: StoredMedia | null): Promise<void> {

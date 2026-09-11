@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vite";
+import { COOP_COEP_HEADERS } from "../../../coop-coep.mjs";
 
 // Single source of truth for the displayed version: package.json. The build
 // stamps it into index.html wherever the __APP_VERSION__ token appears.
@@ -22,16 +23,10 @@ export default defineConfig({
   base: "./",
   plugins: [injectVersion()],
   server: {
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
-    },
+    headers: COOP_COEP_HEADERS,
   },
   preview: {
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
-    },
+    headers: COOP_COEP_HEADERS,
   },
   worker: {
     format: "es",

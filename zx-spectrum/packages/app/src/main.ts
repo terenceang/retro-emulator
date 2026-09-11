@@ -8,8 +8,16 @@ import {
   type MachineModel,
 } from "@zx-spectrum/core";
 import { AudioSink } from "@retro/framework/audio-sink";
+import { downloadBlob } from "@retro/framework/download";
+import { isInteractiveElement } from "@retro/framework/dom";
+import { createLogger } from "@retro/framework/log";
+import { createPauseUi } from "@retro/framework/pause-ui";
+import { createFullscreenUi } from "@retro/framework/fullscreen-ui";
+import { escapeHtml, stripExtension } from "@retro/framework/text";
+import { sleep } from "@retro/framework/timing";
 import { DEFAULT_SAMPLE_RATE } from "../../worker/src/protocol.js";
 import { CAPS_SHIFT, KEY_MAP, SYMBOL_CHAR_MAP, SYMBOL_SHIFT } from "./input/keyMapping.js";
+import { LS_KEYS } from "./utils/storageKeys.js";
 import {
   DEFAULT_JOYSTICK_KEY_BINDINGS,
   JOYSTICK_DIRECTIONS,
@@ -169,8 +177,8 @@ const modalError = document.getElementById("modal-error") as HTMLDivElement;
 let modalRomData: ArrayBuffer | null = null;
 let modalRomFilename = "";
 
-const savedVolume = parseFloat(localStorage.getItem("zx_spectrum_volume") ?? "0.5");
-const savedMuted = localStorage.getItem("zx_spectrum_muted") === "true";
+const savedVolume = parseFloat(localStorage.getItem(LS_KEYS.volume) ?? "0.5");
+const savedMuted = localStorage.getItem(LS_KEYS.muted) === "true";
 const initialVolume = isNaN(savedVolume) ? 0.5 : Math.max(0, Math.min(1, savedVolume));
 
 const beeperProcessorUrl = `${import.meta.env.BASE_URL}beeper-processor.js`;
@@ -231,47 +239,47 @@ volumeSlider?.addEventListener("input", async () => {
   if (audio.isMuted() && vol > 0) {
     audio.setMuted(false);
   }
-  localStorage.setItem("zx_spectrum_volume", vol.toString());
-  localStorage.setItem("zx_spectrum_muted", audio.isMuted().toString());
+  localStorage.setItem(LS_KEYS.volume, vol.toString());
+  localStorage.setItem(LS_KEYS.muted, audio.isMuted().toString());
   updateVolumeUi();
   await ensureAudioStarted();
 });
 
 muteBtn?.addEventListener("click", async () => {
   audio.toggleMute();
-  localStorage.setItem("zx_spectrum_muted", audio.isMuted().toString());
+  localStorage.setItem(LS_KEYS.muted, audio.isMuted().toString());
   updateVolumeUi();
   await ensureAudioStarted();
 });
 
-const savedTapeSound = localStorage.getItem("zx_spectrum_tape_sound") !== "false";
+const savedTapeSound = localStorage.getItem(LS_KEYS.tapeSound) !== "false";
 if (tapeSoundToggle) tapeSoundToggle.checked = savedTapeSound;
 client.setTapeSound(savedTapeSound);
 
 tapeSoundToggle?.addEventListener("change", () => {
   const enabled = tapeSoundToggle.checked;
-  localStorage.setItem("zx_spectrum_tape_sound", enabled.toString());
+  localStorage.setItem(LS_KEYS.tapeSound, enabled.toString());
   client.setTapeSound(enabled);
 });
 
-const savedFastTape = localStorage.getItem("zx_spectrum_fast_tape_load") === "true";
+const savedFastTape = localStorage.getItem(LS_KEYS.fastTapeLoad) === "true";
 if (fastTapeToggle) fastTapeToggle.checked = savedFastTape;
 client.setFastTapeLoad(savedFastTape);
 
 fastTapeToggle?.addEventListener("change", () => {
   const enabled = fastTapeToggle.checked;
-  localStorage.setItem("zx_spectrum_fast_tape_load", enabled.toString());
+  localStorage.setItem(LS_KEYS.fastTapeLoad, enabled.toString());
   client.setFastTapeLoad(enabled);
 });
 
 const savedAudioMode =
-  (localStorage.getItem("zx_spectrum_audio_mode") as "mono" | "acb" | "abc" | null) ?? "acb";
+  (localStorage.getItem(LS_KEYS.audioMode) as "mono" | "acb" | "abc" | null) ?? "acb";
 if (audioModeSelect) audioModeSelect.value = savedAudioMode;
 client.setAudioMode(savedAudioMode);
 
 audioModeSelect?.addEventListener("change", () => {
   const mode = (audioModeSelect.value as "mono" | "acb" | "abc") || "acb";
-  localStorage.setItem("zx_spectrum_audio_mode", mode);
+  localStorage.setItem(LS_KEYS.audioMode, mode);
   client.setAudioMode(mode);
 });
 
@@ -279,13 +287,13 @@ let paused = false;
 let romLoaded = false;
 let tapePlaying = false;
 let tapeLoaded = false;
-let libraryOpen = localStorage.getItem("zx_spectrum_library_open") === "true";
-let controlsOpen = localStorage.getItem("zx_spectrum_controls_open") === "true";
+let libraryOpen = localStorage.getItem(LS_KEYS.libraryOpen) === "true";
+let controlsOpen = localStorage.getItem(LS_KEYS.controlsOpen) === "true";
 let activeLeftTab: "tapes" | "snapshots" =
-  (localStorage.getItem("zx_spectrum_left_tab") as "tapes" | "snapshots" | null) ?? "tapes";
+  (localStorage.getItem(LS_KEYS.leftTab) as "tapes" | "snapshots" | null) ?? "tapes";
 type RightTab = "machine" | "input" | "system";
 let activeRightTab: RightTab =
-  (localStorage.getItem("zx_spectrum_right_tab") as RightTab | null) ?? "machine";
+  (localStorage.getItem(LS_KEYS.rightTab) as RightTab | null) ?? "machine";
 let pendingTapeEntry: TapeEntry | null = null;
 type LibraryFilter = "all" | TapeFormat | "48k" | "128k";
 let libraryFilterText = "";
@@ -294,7 +302,7 @@ const selectedTapeIds = new Set<string>();
 
 function setLeftTab(tab: "tapes" | "snapshots"): void {
   activeLeftTab = tab;
-  localStorage.setItem("zx_spectrum_left_tab", tab);
+  localStorage.setItem(LS_KEYS.leftTab, tab);
   if (panelTapesTab) panelTapesTab.style.display = tab === "tapes" ? "flex" : "none";
   if (panelSnapshotsTab) panelSnapshotsTab.style.display = tab === "snapshots" ? "flex" : "none";
   tapeLibraryToggle?.classList.toggle("active", libraryOpen && tab === "tapes");
@@ -303,7 +311,7 @@ function setLeftTab(tab: "tapes" | "snapshots"): void {
 
 function setRightTab(tab: RightTab): void {
   activeRightTab = tab;
-  localStorage.setItem("zx_spectrum_right_tab", tab);
+  localStorage.setItem(LS_KEYS.rightTab, tab);
   if (panelControlsMachineTab)
     panelControlsMachineTab.style.display = tab === "machine" ? "flex" : "none";
   if (panelControlsInputTab)
@@ -341,89 +349,8 @@ function currentModel(): MachineModel {
   return modelSelect.value as MachineModel;
 }
 
-interface LogEntry {
-  timestamp: string;
-  message: string;
-  level: "info" | "warn" | "error";
-}
-
-const logEntries: LogEntry[] = [];
-
-function updateLogButtons(): void {
-  const hasEntries = logEntries.length > 0;
-  if (saveLogBtn) saveLogBtn.disabled = !hasEntries;
-  if (clearLogBtn) clearLogBtn.disabled = !hasEntries;
-}
-
-function appendLogEntryUi(entry: LogEntry): void {
-  if (!logEntriesEl) return;
-  const empty = logEntriesEl.querySelector(".log-entry-empty");
-  if (empty) empty.remove();
-
-  const row = document.createElement("div");
-  row.className = `log-entry log-${entry.level}`;
-
-  const timeSpan = document.createElement("span");
-  timeSpan.className = "log-entry-time";
-  timeSpan.textContent = `[${entry.timestamp}]`;
-
-  const msgSpan = document.createElement("span");
-  msgSpan.className = "log-entry-msg";
-  msgSpan.textContent = entry.message;
-
-  row.appendChild(timeSpan);
-  row.appendChild(msgSpan);
-  logEntriesEl.appendChild(row);
-
-  while (logEntriesEl.children.length > 200) {
-    logEntriesEl.removeChild(logEntriesEl.firstChild!);
-  }
-
-  if (logContainer) {
-    logContainer.scrollTop = logContainer.scrollHeight;
-  }
-  updateLogButtons();
-}
-
-function escapeHtml(unsafe: string): string {
-  return unsafe
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function renderLogs(): void {
-  if (!logEntriesEl) return;
-  logEntriesEl.innerHTML = "";
-  if (logEntries.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "log-entry-empty";
-    empty.textContent = "No log entries yet.";
-    logEntriesEl.appendChild(empty);
-    updateLogButtons();
-    return;
-  }
-  for (const entry of logEntries) {
-    appendLogEntryUi(entry);
-  }
-}
-
-function logEvent(message: string, level: "info" | "warn" | "error" = "info"): void {
-  const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-  const entry: LogEntry = { timestamp: timeStr, message, level };
-  logEntries.push(entry);
-  if (logEntries.length > 500) logEntries.shift();
-  appendLogEntryUi(entry);
-}
-
-function setStatus(message: string, level: "info" | "warn" | "error" = "info"): void {
-  status.textContent = message;
-  logEvent(message, level);
-}
+const logger = createLogger({ statusEl: status, logEntriesEl, logContainer, saveLogBtn, clearLogBtn });
+const { entries: logEntries, logEvent, setStatus, renderLogs } = logger;
 
 renderLogs();
 
@@ -435,61 +362,16 @@ let lastFpsUpdate = performance.now();
 let lastFpsFrameCount = 0;
 let currentFps = 0;
 
-function updateFpsUi(): void {
-  if (!fpsVal) return;
-  if (!romLoaded) {
-    fpsVal.textContent = "--";
-    return;
-  }
-  if (paused) {
-    fpsVal.textContent = "Paused";
-    return;
-  }
-  fpsVal.textContent = currentFps.toFixed(1);
-}
+const pauseUi = createPauseUi({
+  pauseBtn,
+  fpsVal,
+  isPaused: () => paused,
+  isRomLoaded: () => romLoaded,
+  getFps: () => currentFps,
+});
+const { updatePauseUi, updateFpsUi } = pauseUi;
 
-function updatePauseUi(): void {
-  const pauseIcon = pauseBtn.querySelector(".icon-pause") as SVGElement | null;
-  const playIcon = pauseBtn.querySelector(".icon-play") as SVGElement | null;
-  const label = document.getElementById("pause-btn-label");
-  if (paused) {
-    if (pauseIcon) pauseIcon.style.display = "none";
-    if (playIcon) playIcon.style.display = "block";
-    if (label) label.textContent = "Resume";
-    pauseBtn.setAttribute("title", "Resume emulation");
-    pauseBtn.setAttribute("aria-label", "Resume emulation");
-    pauseBtn.classList.add("btn-accent");
-  } else {
-    if (pauseIcon) pauseIcon.style.display = "block";
-    if (playIcon) playIcon.style.display = "none";
-    if (label) label.textContent = "Pause";
-    pauseBtn.setAttribute("title", "Pause emulation");
-    pauseBtn.setAttribute("aria-label", "Pause emulation");
-    pauseBtn.classList.remove("btn-accent");
-  }
-  updateFpsUi();
-}
-
-function updateFullscreenUi(): void {
-  if (!fullscreenBtn) return;
-  const enterIcon = fullscreenBtn.querySelector(".icon-fullscreen-enter") as SVGElement | null;
-  const exitIcon = fullscreenBtn.querySelector(".icon-fullscreen-exit") as SVGElement | null;
-  const label = document.getElementById("fullscreen-btn-label");
-  const isFullscreen = document.fullscreenElement === screenFrame;
-  if (isFullscreen) {
-    if (enterIcon) enterIcon.style.display = "none";
-    if (exitIcon) exitIcon.style.display = "block";
-    if (label) label.textContent = "Exit";
-    fullscreenBtn.setAttribute("title", "Exit fullscreen");
-    fullscreenBtn.setAttribute("aria-label", "Exit fullscreen");
-  } else {
-    if (enterIcon) enterIcon.style.display = "block";
-    if (exitIcon) exitIcon.style.display = "none";
-    if (label) label.textContent = "Fullscreen";
-    fullscreenBtn.setAttribute("title", "Enter fullscreen");
-    fullscreenBtn.setAttribute("aria-label", "Enter fullscreen");
-  }
-}
+const { updateFullscreenUi } = createFullscreenUi({ fullscreenBtn, screenFrame });
 
 function updateTapeUi(): void {
   const playIcon = tapeBtn.querySelector(".icon-tape-play") as SVGElement | null;
@@ -801,8 +683,7 @@ async function quickLoadCurrentSlot(): Promise<void> {
   client.loadState(activeSaveStateSlot, entry.data.slice(0), entry.model, entry.format);
   const nameLabel = entry.name ? ` (${entry.name})` : "";
   setStatus(`Loaded state from slot ${activeSaveStateSlot}${nameLabel}.`);
-  paused = false;
-  updatePauseUi();
+  setPaused(false);
   await ensureAudioStarted();
 }
 
@@ -1040,7 +921,7 @@ function toggleLibrary(): void {
   libraryOpen = !libraryOpen;
   tapeLibraryPanel.classList.toggle("open", libraryOpen);
   document.body.classList.toggle("library-open", libraryOpen);
-  localStorage.setItem("zx_spectrum_library_open", libraryOpen.toString());
+  localStorage.setItem(LS_KEYS.libraryOpen, libraryOpen.toString());
   tapeLibraryToggle?.classList.toggle("active", libraryOpen && activeLeftTab === "tapes");
   snapshotsPanelToggle?.classList.toggle("active", libraryOpen && activeLeftTab === "snapshots");
   if (libraryOpen && controlsOpen) toggleControls();
@@ -1056,7 +937,7 @@ function toggleControls(): void {
   controlsOpen = !controlsOpen;
   controlsPanel.classList.toggle("open", controlsOpen);
   document.body.classList.toggle("controls-open", controlsOpen);
-  localStorage.setItem("zx_spectrum_controls_open", controlsOpen.toString());
+  localStorage.setItem(LS_KEYS.controlsOpen, controlsOpen.toString());
   setRightTab(activeRightTab);
   if (controlsOpen && libraryOpen) toggleLibrary();
 }
@@ -1065,11 +946,6 @@ function initControlsState(): void {
   controlsPanel.classList.toggle("open", controlsOpen);
   document.body.classList.toggle("controls-open", controlsOpen);
   setRightTab(activeRightTab);
-}
-
-function stripExtension(filename: string): string {
-  const dot = filename.lastIndexOf(".");
-  return dot > 0 ? filename.slice(0, dot) : filename;
 }
 
 async function onLibraryFileSelect(files: FileList | null): Promise<void> {
@@ -1165,10 +1041,8 @@ async function loadRomFiles(files: File[]): Promise<void> {
 
   client.loadRom(model, data);
   client.reset();
-  client.resume();
   romLoaded = true;
-  paused = false;
-  updatePauseUi();
+  setPaused(false);
   updateRomUi(filename);
   setStatus(`${model.toUpperCase()} ROM loaded and reset. Load a snapshot or tape to play.`);
   await ensureAudioStarted();
@@ -1193,8 +1067,7 @@ async function loadMediaFile(file: File): Promise<void> {
     if (mediaFileText) mediaFileText.textContent = file.name;
     await saveSessionMedia({ filename: file.name, format, data: sessionData });
 
-    paused = false;
-    updatePauseUi();
+    setPaused(false);
     await ensureAudioStarted();
 
     await new Promise((r) => setTimeout(r, 60));
@@ -1215,8 +1088,7 @@ async function loadMediaFile(file: File): Promise<void> {
     if (diskFileText) diskFileText.textContent = file.name;
     if (diskEjectBtn) diskEjectBtn.disabled = false;
     setStatus(`Inserted disk "${file.name}".`);
-    paused = false;
-    updatePauseUi();
+    setPaused(false);
     await ensureAudioStarted();
     return;
   } else {
@@ -1225,8 +1097,7 @@ async function loadMediaFile(file: File): Promise<void> {
   }
 
   setStatus(`Loaded "${file.name}". Ready.`);
-  paused = false;
-  updatePauseUi();
+  setPaused(false);
   await ensureAudioStarted();
 }
 
@@ -1237,7 +1108,7 @@ let frameLoopRunning = false;
 async function switchModel(newModel: MachineModel): Promise<void> {
   modelSelect.value = newModel;
   previousModel = newModel;
-  localStorage.setItem("zx_spectrum_last_model", newModel);
+  localStorage.setItem(LS_KEYS.lastModel, newModel);
   updateFloppyUiVisibility();
   updateAudioModeUiVisibility();
   updateMemoryInfoUi();
@@ -1336,7 +1207,7 @@ modalStartBtn.addEventListener("click", async () => {
 
   modelSelect.value = model;
   previousModel = model;
-  localStorage.setItem("zx_spectrum_last_model", model);
+  localStorage.setItem(LS_KEYS.lastModel, model);
   updateFloppyUiVisibility();
   updateAudioModeUiVisibility();
   updateMemoryInfoUi();
@@ -1347,10 +1218,8 @@ modalStartBtn.addEventListener("click", async () => {
 
   client.loadRom(model, modalRomData);
   client.reset();
-  client.resume();
   romLoaded = true;
-  paused = false;
-  updatePauseUi();
+  setPaused(false);
   setStatus(`${model.toUpperCase()} ROM loaded and reset. Load a snapshot, tape, or disk to play.`);
 
   hideSetupModal();
@@ -1373,22 +1242,36 @@ romSetupBtn?.addEventListener("click", () => {
   showSetupModal();
 });
 
-pauseBtn.addEventListener("click", () => {
-  paused = !paused;
+/**
+ * Single source of truth for the paused flag: syncs the worker/audio and
+ * restarts the frame loop's rAF chain whenever it comes out of a genuine
+ * pause, so callers that unpause outside the Pause button (loading a ROM,
+ * snapshot, tape, or save state) can't strand the canvas with a dead loop.
+ * Never assign `paused` directly.
+ */
+function setPaused(value: boolean): void {
+  const wasPaused = paused;
+  paused = value;
   if (paused) {
     client.pause();
     audio.suspend();
-    cancelAnimationFrame(rafHandle);
-    logEvent("Emulation paused.");
+    if (!wasPaused) cancelAnimationFrame(rafHandle);
   } else {
     client.resume();
     audio.resume();
-    lastFpsUpdate = performance.now();
-    lastFpsFrameCount = client.getFrameCount();
-    rafHandle = requestAnimationFrame(frameLoop);
-    logEvent("Emulation resumed.");
+    if (wasPaused) {
+      lastFpsUpdate = performance.now();
+      lastFpsFrameCount = client.getFrameCount();
+      rafHandle = requestAnimationFrame(frameLoop);
+    }
   }
   updatePauseUi();
+}
+
+pauseBtn.addEventListener("click", () => {
+  const wasPaused = paused;
+  setPaused(!wasPaused);
+  logEvent(wasPaused ? "Emulation resumed." : "Emulation paused.");
 });
 
 resetBtn.addEventListener("click", () => {
@@ -1422,13 +1305,7 @@ saveLogBtn?.addEventListener("click", () => {
   const pad = (n: number) => n.toString().padStart(2, "0");
   const dateStr = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
   const filename = `zx-spectrum-log-${dateStr}.txt`;
-  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(text, filename, "text/plain;charset=utf-8");
   setStatus(`Saved log as "${filename}".`);
 });
 
@@ -1465,13 +1342,7 @@ saveSnapshotBtn.addEventListener("click", async () => {
   }
   const filename = `${baseName}.${actualFormat}`;
 
-  const blob = new Blob([data], { type: "application/octet-stream" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(data, filename, "application/octet-stream");
 
   setStatus(`Exported Slot ${activeSaveStateSlot} as "${filename}".`);
 });
@@ -1484,8 +1355,7 @@ async function instantLoadCurrentTape(): Promise<void> {
   await sleep(2500);
   await typeText('j""\n');
   setStatus(`Fast loading "${mediaFileText?.textContent}"...`);
-  paused = false;
-  updatePauseUi();
+  setPaused(false);
 }
 
 tapeBtn.addEventListener("click", () => {
@@ -1580,13 +1450,7 @@ tapeLibraryBulkExportBtn.addEventListener("click", async () => {
   for (const id of selectedTapeIds) {
     const tape = await getTape(id);
     if (!tape) continue;
-    const blob = new Blob([tape.data], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = tape.filename;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(tape.data, tape.filename, "application/octet-stream");
     await sleep(150);
   }
 });
@@ -1778,12 +1642,6 @@ function pollGamepad(): void {
 
 const activeSymbolKeys = new Map<string, { row: number; bit: number }>();
 
-function isInteractiveElement(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false;
-  const tag = target.tagName;
-  return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
-}
-
 window.addEventListener("keydown", (e) => {
   if (isInteractiveElement(e.target)) return;
   onFirstGesture();
@@ -1878,10 +1736,6 @@ client.onReady = () => {
 };
 
 void restoreSession();
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function typeText(text: string): Promise<void> {
   for (const ch of text) {
