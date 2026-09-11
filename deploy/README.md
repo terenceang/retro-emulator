@@ -4,14 +4,14 @@
 
 ```
 Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
-                                              ├─ /              landing (~/emu)
+                                              ├─ /              landing/ (symlinked via ~/emu)
                                               ├─ /apple2e/      apple2e dist
                                               ├─ /zx-spectrum/  zx dist
                                               ├─ /api/count     visitor counter
                                               └─ /healthz       liveness
 ```
 
-- `emu-site.service` — **the single production server** (source of truth: `~/emu-site`)
+- `emu-site.service` — **the single production server** (source of truth: this repo, `~/retro-emulator`)
 - `cloudflared.service` — tunnel unit; ingress lives in `~/.cloudflared/config.yml`
   (`service: http://localhost:8080`)
 

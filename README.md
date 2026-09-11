@@ -10,6 +10,7 @@ Repo for emu.terenceang.com: site server, ops/deploy files, and both emulator co
 | `test/server.test.mjs` | Site server tests (`node --test test/server.test.mjs`) |
 | `count.json` | Visitor counter state (gitignored) |
 | `deploy/` | systemd units, cloudflared service (canonical copies) |
+| `landing/` | Landing page source (`/`) — HTML/CSS/JS + machine photos |
 | `apple2e/` | Apple //e emulator monorepo |
 | `zx-spectrum/` | ZX Spectrum emulator monorepo |
 | `archive/` | Retired/one-time files kept for historical reference only (not part of the active deploy) — see `archive/README.md` |
@@ -24,7 +25,7 @@ Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
 
 | Serves | What |
 |---|---|
-| `/` | Landing page (`/home/terence/emu` static tree, unchanged deploy flow) |
+| `/` | Landing page (source: `landing/`, served via `/home/terence/emu` symlinks) |
 | `/apple2e/` | Apple //e emulator dist + COOP/COEP + real `/apple2e/healthz` |
 | `/zx-spectrum/` | ZX Spectrum dist + COOP/COEP + `/zx-spectrum/healthz` |
 | `/api/count` | Visitor counter (IP-throttled, atomic persist) |
@@ -48,9 +49,12 @@ EMU_SITE_ROOT=/home/terence/emu PORT=8080 node server.mjs
 
 ## Runtime (unchanged paths)
 
-- Static web root: `/home/terence/emu` (built output, not in this repo)
-- Service: `emu-site.service` runs `server.mjs` on port 8080
-- `/home/terence/emu-site` is a symlink to this repo root so the running unit keeps working
+- Static web root: `/home/terence/emu` — a flat assembly directory whose every entry is a
+  symlink into this repo (`index.html`, `favicon.svg`, `assets/` → `landing/`; `apple2e/` →
+  `apple2e/packages/app/dist`; `zx-spectrum/` → `zx-spectrum/packages/app/dist`), so this
+  repo is the single source of truth and nothing lives only at that path.
+- Service: `emu-site.service` runs `server.mjs` on port 8080, directly from this repo
+  (`ExecStart=.../node /home/terence/retro-emulator/server.mjs`)
 - `count.json` lives at the repo root; the systemd unit's `ReadWritePaths` grants write
   access to the whole repo root for this (a tradeoff of the flat layout — narrower
   sandboxing would mean moving `count.json` into its own subdirectory)
