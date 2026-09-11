@@ -15,7 +15,7 @@ Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
 - `cloudflared.service` — tunnel unit; ingress lives in `~/.cloudflared/config.yml`
   (`service: http://localhost:8080`)
 
-## Retired (kept for rollback)
+## Retired (archived)
 
 - `emu.terenceang.com.conf`, `emu-security.conf` — old nginx vhost + header snippet
   (enabled via `/etc/nginx/sites-enabled/`). Superseded: its healthz was a fake 204,
@@ -23,4 +23,4 @@ Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
   the server-level security headers.
 - `emu-counter.service` — counter folded into emu-site (`/api/count`).
 
-Rollback steps: see `~/emu-site/README.md`.
+These have moved to `../archive/deploy-legacy/` — see `../archive/README.md`.
