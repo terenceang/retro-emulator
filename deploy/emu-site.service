@@ -8,7 +8,7 @@ User=terence
 Group=terence
 Environment=EMU_SITE_ROOT=/home/terence/emu
 Environment=PORT=8080
-ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/retro-emulator/site/server.mjs
+ExecStart=/home/terence/.local/opt/node/bin/node /home/terence/retro-emulator/apps/site/server.mjs
 Restart=on-failure
 RestartSec=3
 
@@ -17,7 +17,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=/home/terence/retro-emulator/site
+ReadWritePaths=/home/terence/retro-emulator/apps/site
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
