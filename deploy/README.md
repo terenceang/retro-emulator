@@ -4,7 +4,7 @@
 
 ```
 Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
-                                              ├─ /              landing/ (symlinked via ~/emu)
+                                              ├─ /              landing/ (via public/)
                                               ├─ /apple2e/      apple2e dist
                                               ├─ /zx-spectrum/  zx dist
                                               ├─ /api/count     visitor counter

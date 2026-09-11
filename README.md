@@ -11,6 +11,7 @@ Repo for emu.terenceang.com: site server, ops/deploy files, and both emulator co
 | `count.json` | Visitor counter state (gitignored) |
 | `deploy/` | systemd units, cloudflared service (canonical copies) |
 | `landing/` | Landing page source (`/`) — HTML/CSS/JS + machine photos |
+| `public/` | Served root (`EMU_SITE_ROOT`) — symlinks only, into `landing/` and the two dist builds |
 | `apple2e/` | Apple //e emulator monorepo |
 | `zx-spectrum/` | ZX Spectrum emulator monorepo |
 | `archive/` | Retired/one-time files kept for historical reference only (not part of the active deploy) — see `archive/README.md` |
@@ -25,7 +26,7 @@ Internet → Cloudflare → cloudflared tunnel → emu-site (127.0.0.1:8080)
 
 | Serves | What |
 |---|---|
-| `/` | Landing page (source: `landing/`, served via `/home/terence/emu` symlinks) |
+| `/` | Landing page (source: `landing/`, served via `public/` symlinks) |
 | `/apple2e/` | Apple //e emulator dist + COOP/COEP + real `/apple2e/healthz` |
 | `/zx-spectrum/` | ZX Spectrum dist + COOP/COEP + `/zx-spectrum/healthz` |
 | `/api/count` | Visitor counter (IP-throttled, atomic persist) |
@@ -44,17 +45,18 @@ Notes:
 
 ```
 node --test test/server.test.mjs
-EMU_SITE_ROOT=/home/terence/emu PORT=8080 node server.mjs
+EMU_SITE_ROOT=$(pwd)/public PORT=8080 node server.mjs
 ```
 
 ## Runtime (unchanged paths)
 
-- Static web root: `/home/terence/emu` — a flat assembly directory whose every entry is a
-  symlink into this repo (`index.html`, `favicon.svg`, `assets/` → `landing/`; `apple2e/` →
-  `apple2e/packages/app/dist`; `zx-spectrum/` → `zx-spectrum/packages/app/dist`), so this
-  repo is the single source of truth and nothing lives only at that path.
+- Static web root: `public/`, inside this repo — every entry in it is a symlink
+  (`index.html`, `favicon.svg`, `assets/` → `landing/`; `apple2e/` → `apple2e/packages/app/dist`;
+  `zx-spectrum/` → `zx-spectrum/packages/app/dist`), so this repo is the single source of
+  truth for everything served and nothing lives only on the deploy host.
 - Service: `emu-site.service` runs `server.mjs` on port 8080, directly from this repo
-  (`ExecStart=.../node /home/terence/retro-emulator/server.mjs`)
+  (`ExecStart=.../node /home/terence/retro-emulator/server.mjs`,
+  `EMU_SITE_ROOT=/home/terence/retro-emulator/public`)
 - `count.json` lives at the repo root; the systemd unit's `ReadWritePaths` grants write
   access to the whole repo root for this (a tradeoff of the flat layout — narrower
   sandboxing would mean moving `count.json` into its own subdirectory)
